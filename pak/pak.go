@@ -1,3 +1,4 @@
+// Package pak provides methods to read PAK files
 package pak
 
 import (
@@ -79,7 +80,9 @@ func fromReadable(r readable) (t *Type, err error) {
 
 // Reader returns a section reader for the entry with
 // the given name, returns nil if the entry doesn't exist
-// in this PAK file
+// in this PAK file. Readers returned from this will be
+// closed after Type.Close is called and should not be
+// used after this point.
 func (t *Type) Reader(name string) *io.SectionReader {
 	e, ok := t.files[strings.ToLower(name)]
 	if !ok {
