@@ -5,9 +5,14 @@ import (
 	"io"
 )
 
+const (
+	sizeTextureInfo = 4*6 + 4*2 + 4*2
+)
+
 type File struct {
-	lightMaps []byte
-	textures  []*texture
+	lightMaps   []byte
+	textures    []*texture
+	textureInfo []*textureInfo
 }
 
 func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
@@ -26,6 +31,15 @@ func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
 
 	// Textures
 	err = bsp.parseTextures(io.NewSectionReader(r, int64(header.WallTextures.Offset), 0xFFFFFF))
+	if err != nil {
+		return
+	}
+
+	// Texture Info
+	err = bsp.parseTextureInfo(
+		io.NewSectionReader(r, int64(header.TextureInfo.Offset), 0xFFFFFF),
+		int(header.TextureInfo.Size/sizeTextureInfo),
+	)
 	if err != nil {
 		return
 	}

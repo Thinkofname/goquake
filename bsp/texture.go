@@ -18,6 +18,8 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 		return err
 	}
 
+	bsp.textures = make([]*texture, count)
+
 	for i := 0; i < int(count); i++ {
 		var offset int32
 		err = binary.Read(r, binary.LittleEndian, &offset)
@@ -30,7 +32,7 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 			return err
 		}
 		// Textures are referred to by index not by name
-		bsp.textures = append(bsp.textures, tex)
+		bsp.textures[i] = tex
 	}
 	return nil
 }
