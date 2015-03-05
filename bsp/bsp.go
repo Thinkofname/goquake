@@ -11,6 +11,7 @@ const (
 	sizeEdge        = 2 + 2
 	sizePlane       = 4*3 + 4 + 4
 	sizeFace        = 2 + 2 + 4 + 2 + 2 + 4 + 4
+	sizeModel       = (4*3)*3 + 4*4 + 4 + 4 + 4
 )
 
 type File struct {
@@ -22,6 +23,7 @@ type File struct {
 	ledges      []int
 	planes      []*plane
 	faces       []*face
+	models      []*model
 }
 
 func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
@@ -96,6 +98,15 @@ func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
 	err = bsp.parseFaces(
 		io.NewSectionReader(r, int64(header.Faces.Offset), 0xFFFFFF),
 		int(header.Faces.Size/sizeFace),
+	)
+	if err != nil {
+		return
+	}
+
+	// Models
+	err = bsp.parseModels(
+		io.NewSectionReader(r, int64(header.Models.Offset), 0xFFFFFF),
+		int(header.Models.Size/sizeModel),
 	)
 	if err != nil {
 		return

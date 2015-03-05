@@ -16,7 +16,10 @@ func init() {
 }
 
 func main() {
-	defer profile.Start(profile.CPUProfile).Stop()
+	defer profile.Start(&profile.Config{
+		CPUProfile: true,
+		ProfilePath: "./profiles",
+	}).Stop()
 
 	if !glfw.Init() {
 		panic("glfw error")
