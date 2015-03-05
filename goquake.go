@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.0/glfw"
 	"github.com/thinkofdeath/goquake/bsp"
 	"github.com/thinkofdeath/goquake/pak"
 	"runtime"
+	"time"
+	"github.com/davecheney/profile"
 )
 
 func init() {
@@ -13,6 +16,8 @@ func init() {
 }
 
 func main() {
+	defer profile.Start(profile.CPUProfile).Stop()
+
 	if !glfw.Init() {
 		panic("glfw error")
 	}
@@ -34,6 +39,7 @@ func main() {
 
 	glfw.SwapInterval(1)
 
+	start := time.Now()
 	p, err := pak.FromFile("id1/PAK0.PAK")
 	if err != nil {
 		panic(err)
@@ -44,6 +50,10 @@ func main() {
 		panic(err)
 	}
 	_ = bsp
+
+	fmt.Println(time.Now().Sub(start))
+
+	return
 
 	for !window.ShouldClose() {
 		width, height := window.GetFramebufferSize()

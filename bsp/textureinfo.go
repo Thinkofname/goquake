@@ -14,7 +14,7 @@ type textureInfo struct {
 	animated bool
 }
 
-type textureInfoHeader struct {
+type textureInfoData struct {
 	VectorS   vec3
 	DistS     float32
 	VectorT   vec3
@@ -26,7 +26,7 @@ type textureInfoHeader struct {
 func (bsp *File) parseTextureInfo(r *io.SectionReader, count int) error {
 	bsp.textureInfo = make([]*textureInfo, count)
 
-	headers := make([]textureInfoHeader, count)
+	headers := make([]textureInfoData, count)
 	err := binary.Read(r, binary.LittleEndian, headers)
 	if err != nil {
 		return err

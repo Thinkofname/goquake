@@ -9,6 +9,7 @@ const (
 	sizeTextureInfo = 4*6 + 4*2 + 4*2
 	sizeVertex      = 4 * 3
 	sizeEdge        = 2 + 2
+	sizePlane       = 4*3 + 4 + 4
 )
 
 type File struct {
@@ -18,6 +19,7 @@ type File struct {
 	vertices    []vertex
 	edges       []edge
 	ledges      []int
+	planes      []*plane
 }
 
 func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
@@ -77,6 +79,15 @@ func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
 	bsp.ledges = make([]int, len(ledges))
 	for i, j := range ledges {
 		bsp.ledges[i] = int(j)
+	}
+
+	// Planes
+	err = bsp.parsePlanes(
+		io.NewSectionReader(r, int64(header.Planes.Offset), 0xFFFFFF),
+		int(header.Planes.Size/sizePlane),
+	)
+	if err != nil {
+		return
 	}
 
 	return

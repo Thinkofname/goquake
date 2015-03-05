@@ -38,7 +38,7 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 }
 
 func parseTexture(r *io.SectionReader) (*texture, error) {
-	var header textureHeader
+	var header textureData
 	err := binary.Read(r, binary.LittleEndian, &header)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func readPicture(r *io.SectionReader, offset int64, width, height int) *picture 
 	}
 }
 
-type textureHeader struct {
+type textureData struct {
 	Name    [16]byte
 	Width   uint32
 	Height  uint32

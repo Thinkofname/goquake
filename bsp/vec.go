@@ -25,7 +25,7 @@ type edge struct {
 	vertex1 *vertex
 }
 
-type edgeHeader struct {
+type edgeData struct {
 	Vertex0 uint16
 	Vertex1 uint16
 }
@@ -33,7 +33,7 @@ type edgeHeader struct {
 func (bsp *File) parseEdges(r *io.SectionReader, count int) error {
 	bsp.edges = make([]edge, count)
 
-	headers := make([]edgeHeader, count)
+	headers := make([]edgeData, count)
 	err := binary.Read(r, binary.LittleEndian, headers)
 	if err != nil {
 		return err
