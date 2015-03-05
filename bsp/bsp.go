@@ -2,6 +2,7 @@ package bsp
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -32,6 +33,11 @@ func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
 	var header bspHeader
 	err = binary.Read(r, binary.LittleEndian, &header)
 	if err != nil {
+		return
+	}
+
+	if header.Version != 29 {
+		err = errors.New("unsupported version")
 		return
 	}
 
