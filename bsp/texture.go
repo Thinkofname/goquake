@@ -38,22 +38,22 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 }
 
 func parseTexture(r *io.SectionReader) (*texture, error) {
-	var header textureData
-	err := binary.Read(r, binary.LittleEndian, &header)
+	var tex textureData
+	err := binary.Read(r, binary.LittleEndian, &tex)
 	if err != nil {
 		return nil, err
 	}
 
 	t := &texture{
-		name:   fromCString(header.Name[:]),
-		width:  int(header.Width),
-		height: int(header.Height),
+		name:   fromCString(tex.Name[:]),
+		width:  int(tex.Width),
+		height: int(tex.Height),
 	}
 
 	for i := uint(0); i < 4; i++ {
 		t.pictures[i] = readPicture(
 			r,
-			int64(header.Offsets[i]),
+			int64(tex.Offsets[i]),
 			t.width>>i,
 			t.height>>i,
 		)

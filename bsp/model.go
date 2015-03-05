@@ -28,18 +28,18 @@ type boundingBox struct {
 func (bsp *File) parseModels(r *io.SectionReader, count int) error {
 	bsp.models = make([]*model, count)
 
-	headers := make([]modelData, count)
-	err := binary.Read(r, binary.LittleEndian, headers)
+	models := make([]modelData, count)
+	err := binary.Read(r, binary.LittleEndian, models)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < count; i++ {
-		header := headers[i]
+		m := models[i]
 		bsp.models[i] = &model{
-			bound:  header.Bound,
-			origin: header.Origin,
-			faces:  bsp.faces[header.FaceID : header.FaceID+header.FaceNum],
+			bound:  m.Bound,
+			origin: m.Origin,
+			faces:  bsp.faces[m.FaceID : m.FaceID+m.FaceNum],
 		}
 	}
 	return nil

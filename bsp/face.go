@@ -31,23 +31,23 @@ type faceData struct {
 func (bsp *File) parseFaces(r *io.SectionReader, count int) error {
 	bsp.faces = make([]*face, count)
 
-	headers := make([]faceData, count)
-	err := binary.Read(r, binary.LittleEndian, headers)
+	faces := make([]faceData, count)
+	err := binary.Read(r, binary.LittleEndian, faces)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < count; i++ {
-		header := headers[i]
+		f := faces[i]
 		bsp.faces[i] = &face{
-			plane:     bsp.planes[header.PlaneID],
-			front:     header.Side == 0,
-			ledges:    bsp.ledges[header.LedgeId : header.LedgeId+int32(header.LedgeNum)],
-			texInfo:   bsp.textureInfo[header.TexInfoID],
-			typeLight: header.TypeLight,
-			baseLight: header.BaseLight,
-			light:     header.Light,
-			lightMap:  header.LightMap,
+			plane:     bsp.planes[f.PlaneID],
+			front:     f.Side == 0,
+			ledges:    bsp.ledges[f.LedgeId : f.LedgeId+int32(f.LedgeNum)],
+			texInfo:   bsp.textureInfo[f.TexInfoID],
+			typeLight: f.TypeLight,
+			baseLight: f.BaseLight,
+			light:     f.Light,
+			lightMap:  f.LightMap,
 		}
 	}
 	return nil

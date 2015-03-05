@@ -20,18 +20,18 @@ type planeData struct {
 func (bsp *File) parsePlanes(r *io.SectionReader, count int) error {
 	bsp.planes = make([]*plane, count)
 
-	headers := make([]planeData, count)
-	err := binary.Read(r, binary.LittleEndian, headers)
+	planes := make([]planeData, count)
+	err := binary.Read(r, binary.LittleEndian, planes)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < count; i++ {
-		header := headers[i]
+		p := planes[i]
 		bsp.planes[i] = &plane{
-			normal: header.Normal,
-			dist:   header.Dist,
-			t:      int(header.Type),
+			normal: p.Normal,
+			dist:   p.Dist,
+			t:      int(p.Type),
 		}
 	}
 	return nil
