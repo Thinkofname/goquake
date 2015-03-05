@@ -26,14 +26,14 @@ type textureInfoHeader struct {
 func (bsp *File) parseTextureInfo(r *io.SectionReader, count int) error {
 	bsp.textureInfo = make([]*textureInfo, count)
 
+	headers := make([]textureInfoHeader, count)
+	err := binary.Read(r, binary.LittleEndian, headers)
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < count; i++ {
-		var header textureInfoHeader
-
-		err := binary.Read(r, binary.LittleEndian, &header)
-		if err != nil {
-			return err
-		}
-
+		header := headers[i]
 		bsp.textureInfo[i] = &textureInfo{
 			vectorS:  header.VectorS,
 			distS:    header.DistS,

@@ -7,12 +7,17 @@ import (
 
 const (
 	sizeTextureInfo = 4*6 + 4*2 + 4*2
+	sizeVertex      = 4 * 3
+	sizeEdge        = 2 + 2
 )
 
 type File struct {
 	lightMaps   []byte
 	textures    []*texture
 	textureInfo []*textureInfo
+	vertices    []vertex
+	edges       []edge
+	ledges      []int
 }
 
 func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
@@ -43,6 +48,37 @@ func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
 	if err != nil {
 		return
 	}
+
+	// Vertices
+	err = bsp.parseVertices(
+		io.NewSectionReader(r, int64(header.Vertices.Offset), 0xFFFFFF),
+		int(header.Vertices.Size/sizeVertex),
+	)
+	if err != nil {
+		return
+	}
+
+	// Edges
+	err = bsp.parseEdges(
+		io.NewSectionReader(r, int64(header.Edges.Offset), 0xFFFFFF),
+		int(header.Edges.Size/sizeEdge),
+	)
+	if err != nil {
+		return
+	}
+
+	// Ledges
+	ledges := make([]int32, header.Ledges.Size/4)
+	r.Seek(int64(header.Ledges.Offset), 0)
+	err = binary.Read(r, binary.LittleEndian, ledges)
+	if err != nil {
+		return
+	}
+	bsp.ledges = make([]int, len(ledges))
+	for i, j := range ledges {
+		bsp.ledges[i] = int(j)
+	}
+
 	return
 }
 
