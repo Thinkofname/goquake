@@ -16,7 +16,7 @@ func init() {
 }
 
 var (
-	lockMouse = true
+	lockMouse = false
 )
 
 func main() {
@@ -59,7 +59,6 @@ func main() {
 
 	window.SetKeyCallback(onKey)
 	window.SetCursorPositionCallback(onMouseMove)
-	window.SetInputMode(glfw.Cursor, glfw.CursorHidden)
 	window.SetMouseButtonCallback(onMouse)
 
 	for !window.ShouldClose() {
