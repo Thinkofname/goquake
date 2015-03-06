@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/davecheney/profile"
 	"github.com/go-gl/glfw/v3.0/glfw"
 	"github.com/thinkofdeath/goquake/bsp"
 	"github.com/thinkofdeath/goquake/pak"
@@ -20,11 +19,6 @@ var (
 )
 
 func main() {
-	defer profile.Start(&profile.Config{
-		CPUProfile:  true,
-		ProfilePath: "./profiles",
-	}).Stop()
-
 	if !glfw.Init() {
 		panic("glfw error")
 	}
