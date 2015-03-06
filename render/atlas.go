@@ -54,8 +54,8 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 
 	var p *atlasPart
 	p, a.root = findFree(a.root, w, h)
-	targetX := p.y
-	targetY := p.x
+	targetX := p.x
+	targetY := p.y
 
 	if targetX == -1 || targetY == -1 {
 		panic("atlas full")
