@@ -16,6 +16,7 @@ const (
 	TextureWrapT     TextureParameter = gl.TEXTURE_WRAP_T
 
 	Nearest     TextureValue = gl.NEAREST
+	Linear      TextureValue = gl.LINEAR
 	ClampToEdge TextureValue = gl.CLAMP_TO_EDGE
 )
 
