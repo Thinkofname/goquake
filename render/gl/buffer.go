@@ -44,3 +44,7 @@ func (b Buffer) DataFloat32(data []float32, usage BufferUsage) {
 	}
 	gl.BufferData(uint32(currentBufferTarget), len(data)*4, gl.Ptr(data), uint32(usage))
 }
+
+func (b Buffer) Delete() {
+	gl.DeleteBuffers(1, &b.internal)
+}

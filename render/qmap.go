@@ -243,3 +243,7 @@ func (m *qMap) render() {
 	gameALightType.Pointer(1, gl.Float, false, floatsPerVertex*4, 4*12)
 	gl.DrawArrays(gl.Triangles, 0, m.count)
 }
+
+func (m *qMap) cleanup() {
+	m.mapBuffer.Delete()
+}
