@@ -88,14 +88,14 @@ func onMouseMove(w *glfw.Window, xpos float64, ypos float64) {
 	w.SetCursorPosition(ww, hh)
 
 	render.Rotate(
-		(xpos-ww)/3000,
-		(ypos-hh)/3000,
+		(xpos-ww)/2000,
+		(ypos-hh)/2000,
 	)
 }
 
 func onMouse(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
 	if button == glfw.MouseButtonLeft && action == glfw.Press {
 		lockMouse = true
-		w.SetInputMode(glfw.Cursor, glfw.CursorHidden)
+		w.SetInputMode(glfw.Cursor, glfw.CursorDisabled)
 	}
 }
