@@ -65,6 +65,9 @@ func newQMap(b *bsp.File) *qMap {
 			centerZ /= ec
 
 			light := float32(face.BaseLight) / 255
+			if face.BaseLight == 255 {
+				light = 0
+			}
 
 			tOffsetX := float32(0)
 			tOffsetY := float32(0)
