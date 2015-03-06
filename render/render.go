@@ -87,8 +87,8 @@ func Init(p *pak.File, initialMap *bsp.File) {
 	textureLight = gl.CreateTexture()
 	textureLight.Bind(gl.Texture2D)
 	textureLight.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, make([]byte, atlasSize*atlasSize))
-	textureLight.Parameter(gl.TextureMagFilter, gl.Nearest)
-	textureLight.Parameter(gl.TextureMinFilter, gl.Nearest)
+	textureLight.Parameter(gl.TextureMagFilter, gl.Linear)
+	textureLight.Parameter(gl.TextureMinFilter, gl.Linear)
 	textureLight.Parameter(gl.TextureWrapS, gl.ClampToEdge)
 	textureLight.Parameter(gl.TextureWrapT, gl.ClampToEdge)
 
