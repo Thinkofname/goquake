@@ -5,10 +5,11 @@ import (
 	"io"
 )
 
-type texture struct {
-	name          string
-	width, height int
-	pictures      [4]*picture
+type Texture struct {
+	ID            int
+	Name          string
+	Width, Height int
+	Pictures      [4]*Picture
 }
 
 func (bsp *File) parseTextures(r *io.SectionReader) error {
@@ -18,7 +19,7 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 		return err
 	}
 
-	bsp.textures = make([]*texture, count)
+	bsp.Textures = make([]*Texture, count)
 
 	for i := 0; i < int(count); i++ {
 		var offset int32
@@ -31,49 +32,50 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 		if err != nil {
 			return err
 		}
+		tex.ID = i
 		// Textures are referred to by index not by name
-		bsp.textures[i] = tex
+		bsp.Textures[i] = tex
 	}
 	return nil
 }
 
-func parseTexture(r *io.SectionReader) (*texture, error) {
+func parseTexture(r *io.SectionReader) (*Texture, error) {
 	var tex textureData
 	err := binary.Read(r, binary.LittleEndian, &tex)
 	if err != nil {
 		return nil, err
 	}
 
-	t := &texture{
-		name:   fromCString(tex.Name[:]),
-		width:  int(tex.Width),
-		height: int(tex.Height),
+	t := &Texture{
+		Name:   fromCString(tex.Name[:]),
+		Width:  int(tex.Width),
+		Height: int(tex.Height),
 	}
 
 	for i := uint(0); i < 4; i++ {
-		t.pictures[i] = readPicture(
+		t.Pictures[i] = readPicture(
 			r,
 			int64(tex.Offsets[i]),
-			t.width>>i,
-			t.height>>i,
+			t.Width>>i,
+			t.Height>>i,
 		)
 	}
 
 	return t, nil
 }
 
-type picture struct {
-	width, height int
-	data          []byte
+type Picture struct {
+	Width, Height int
+	Data          []byte
 }
 
-func readPicture(r *io.SectionReader, offset int64, width, height int) *picture {
+func readPicture(r *io.SectionReader, offset int64, width, height int) *Picture {
 	data := make([]byte, width*height)
 	io.ReadFull(r, data)
-	return &picture{
-		width:  width,
-		height: height,
-		data:   data,
+	return &Picture{
+		Width:  width,
+		Height: height,
+		Data:   data,
 	}
 }
 

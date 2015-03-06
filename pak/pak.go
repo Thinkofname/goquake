@@ -21,13 +21,13 @@ var (
 
 // Type contains information about every entry in the PAK
 // file.
-type Type struct {
+type File struct {
 	r     readable
 	files map[string]pakEntry
 }
 
 // FromFile creates a pak.Type from a file with the given name
-func FromFile(name string) (t *Type, err error) {
+func FromFile(name string) (t *File, err error) {
 	file, err := os.Open(name)
 	if err != nil {
 		return
@@ -41,7 +41,7 @@ type readable interface {
 	io.ReaderAt
 }
 
-func fromReadable(r readable) (t *Type, err error) {
+func fromReadable(r readable) (t *File, err error) {
 	var header header
 	err = binary.Read(r, binary.LittleEndian, &header)
 	if err != nil {
@@ -55,7 +55,7 @@ func fromReadable(r readable) (t *Type, err error) {
 		return
 	}
 
-	t = &Type{
+	t = &File{
 		r:     r,
 		files: make(map[string]pakEntry),
 	}
@@ -83,7 +83,7 @@ func fromReadable(r readable) (t *Type, err error) {
 // in this PAK file. Readers returned from this will be
 // closed after Type.Close is called and should not be
 // used after this point.
-func (t *Type) Reader(name string) *io.SectionReader {
+func (t *File) Reader(name string) *io.SectionReader {
 	e, ok := t.files[strings.ToLower(name)]
 	if !ok {
 		return nil
@@ -92,7 +92,7 @@ func (t *Type) Reader(name string) *io.SectionReader {
 }
 
 // Close closes the reader used for the PAK file
-func (t *Type) Close() error {
+func (t *File) Close() error {
 	return t.r.Close()
 }
 

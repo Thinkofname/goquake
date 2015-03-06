@@ -2,22 +2,26 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/davecheney/profile"
 	"github.com/go-gl/glfw/v3.0/glfw"
 	"github.com/thinkofdeath/goquake/bsp"
 	"github.com/thinkofdeath/goquake/pak"
+	"github.com/thinkofdeath/goquake/render"
 	"runtime"
 	"time"
-	"github.com/davecheney/profile"
 )
 
 func init() {
 	runtime.LockOSThread()
 }
 
+var (
+	lockMouse = true
+)
+
 func main() {
 	defer profile.Start(&profile.Config{
-		CPUProfile: true,
+		CPUProfile:  true,
 		ProfilePath: "./profiles",
 	}).Stop()
 
@@ -36,10 +40,6 @@ func main() {
 
 	window.MakeContextCurrent()
 
-	if err := gl.Init(); err != nil {
-		panic(err)
-	}
-
 	glfw.SwapInterval(1)
 
 	start := time.Now()
@@ -52,19 +52,57 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	_ = bsp
+
+	render.Init(p, bsp)
 
 	fmt.Println(time.Now().Sub(start))
 
-	return
+	window.SetKeyCallback(onKey)
+	window.SetCursorPositionCallback(onMouseMove)
+	window.SetInputMode(glfw.Cursor, glfw.CursorHidden)
+	window.SetMouseButtonCallback(onMouse)
 
 	for !window.ShouldClose() {
 		width, height := window.GetFramebufferSize()
-		gl.Viewport(0, 0, int32(width), int32(height))
-		gl.ClearColor(0.0, 0.0, 0.0, 1.0)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
+
+		render.Draw(width, height)
 
 		window.SwapBuffers()
 		glfw.PollEvents()
+	}
+}
+
+func onKey(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if key == glfw.KeyW {
+		switch action {
+		case glfw.Release:
+			render.StopMove()
+		case glfw.Press:
+			render.MoveForward()
+		}
+	} else if key == glfw.KeyEscape {
+		lockMouse = false
+		w.SetInputMode(glfw.Cursor, glfw.CursorNormal)
+	}
+}
+
+func onMouseMove(w *glfw.Window, xpos float64, ypos float64) {
+	if !lockMouse {
+		return
+	}
+	width, height := w.GetFramebufferSize()
+	ww, hh := float64(width/2), float64(height/2)
+	w.SetCursorPosition(ww, hh)
+
+	render.Rotate(
+		(xpos-ww)/3000,
+		(ypos-hh)/3000,
+	)
+}
+
+func onMouse(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
+	if button == glfw.MouseButtonLeft && action == glfw.Press {
+		lockMouse = true
+		w.SetInputMode(glfw.Cursor, glfw.CursorHidden)
 	}
 }

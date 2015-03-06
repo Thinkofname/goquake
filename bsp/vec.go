@@ -2,27 +2,18 @@ package bsp
 
 import (
 	"encoding/binary"
+	"github.com/thinkofdeath/goquake/vmath"
 	"io"
 )
 
-type vec3 struct {
-	X float32
-	Y float32
-	Z float32
-}
-
-type vertex struct {
-	vec3
-}
-
 func (bsp *File) parseVertices(r *io.SectionReader, count int) error {
-	bsp.vertices = make([]vertex, count)
+	bsp.vertices = make([]vmath.Vector3, count)
 	return binary.Read(r, binary.LittleEndian, bsp.vertices)
 }
 
-type edge struct {
-	vertex0 *vertex
-	vertex1 *vertex
+type Edge struct {
+	Vertex0 *vmath.Vector3
+	Vertex1 *vmath.Vector3
 }
 
 type edgeData struct {
@@ -31,7 +22,7 @@ type edgeData struct {
 }
 
 func (bsp *File) parseEdges(r *io.SectionReader, count int) error {
-	bsp.edges = make([]edge, count)
+	bsp.Edges = make([]Edge, count)
 
 	headers := make([]edgeData, count)
 	err := binary.Read(r, binary.LittleEndian, headers)
@@ -39,9 +30,9 @@ func (bsp *File) parseEdges(r *io.SectionReader, count int) error {
 		return err
 	}
 	for i := 0; i < count; i++ {
-		bsp.edges[i] = edge{
-			vertex0: &bsp.vertices[headers[i].Vertex0],
-			vertex1: &bsp.vertices[headers[i].Vertex1],
+		bsp.Edges[i] = Edge{
+			Vertex0: &bsp.vertices[headers[i].Vertex0],
+			Vertex1: &bsp.vertices[headers[i].Vertex1],
 		}
 	}
 	return nil

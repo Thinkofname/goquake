@@ -3,6 +3,7 @@ package bsp
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/thinkofdeath/goquake/vmath"
 	"io"
 )
 
@@ -16,15 +17,15 @@ const (
 )
 
 type File struct {
-	lightMaps   []byte
-	textures    []*texture
-	textureInfo []*textureInfo
-	vertices    []vertex
-	edges       []edge
+	LightMaps   []byte
+	Textures    []*Texture
+	textureInfo []*TextureInfo
+	vertices    []vmath.Vector3
+	Edges       []Edge
 	ledges      []int
 	planes      []*plane
-	faces       []*face
-	models      []*model
+	faces       []*Face
+	Models      []*Model
 }
 
 func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
@@ -43,8 +44,8 @@ func ParseBSPFile(r *io.SectionReader) (bsp *File, err error) {
 
 	// Grab the light maps out of the file
 	r.Seek(int64(header.LightMaps.Offset), 0)
-	bsp.lightMaps = make([]byte, header.LightMaps.Size)
-	io.ReadFull(r, bsp.lightMaps)
+	bsp.LightMaps = make([]byte, header.LightMaps.Size)
+	io.ReadFull(r, bsp.LightMaps)
 
 	// Textures
 	err = bsp.parseTextures(io.NewSectionReader(r, int64(header.WallTextures.Offset), 0xFFFFFF))

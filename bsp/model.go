@@ -2,18 +2,19 @@ package bsp
 
 import (
 	"encoding/binary"
+	"github.com/thinkofdeath/goquake/vmath"
 	"io"
 )
 
-type model struct {
+type Model struct {
 	bound  boundingBox
-	origin vec3
-	faces  []*face
+	Origin vmath.Vector3
+	Faces  []*Face
 }
 
 type modelData struct {
 	Bound       boundingBox
-	Origin      vec3
+	Origin      vmath.Vector3
 	NodeID      [4]int32
 	NumberLeafs int32
 	FaceID      int32
@@ -21,12 +22,12 @@ type modelData struct {
 }
 
 type boundingBox struct {
-	Min vec3
-	Max vec3
+	Min vmath.Vector3
+	Max vmath.Vector3
 }
 
 func (bsp *File) parseModels(r *io.SectionReader, count int) error {
-	bsp.models = make([]*model, count)
+	bsp.Models = make([]*Model, count)
 
 	models := make([]modelData, count)
 	err := binary.Read(r, binary.LittleEndian, models)
@@ -36,10 +37,10 @@ func (bsp *File) parseModels(r *io.SectionReader, count int) error {
 
 	for i := 0; i < count; i++ {
 		m := models[i]
-		bsp.models[i] = &model{
+		bsp.Models[i] = &Model{
 			bound:  m.Bound,
-			origin: m.Origin,
-			faces:  bsp.faces[m.FaceID : m.FaceID+m.FaceNum],
+			Origin: m.Origin,
+			Faces:  bsp.faces[m.FaceID : m.FaceID+m.FaceNum],
 		}
 	}
 	return nil

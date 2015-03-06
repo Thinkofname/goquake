@@ -5,15 +5,15 @@ import (
 	"io"
 )
 
-type face struct {
-	plane     *plane
-	front     bool
-	ledges    []int
-	texInfo   *textureInfo
-	typeLight uint8
-	baseLight uint8
-	light     [2]uint8
-	lightMap  int32
+type Face struct {
+	plane       *plane
+	front       bool
+	Ledges      []int
+	TextureInfo *TextureInfo
+	TypeLight   uint8
+	BaseLight   uint8
+	light       [2]uint8
+	LightMap    int32
 }
 
 type faceData struct {
@@ -29,7 +29,7 @@ type faceData struct {
 }
 
 func (bsp *File) parseFaces(r *io.SectionReader, count int) error {
-	bsp.faces = make([]*face, count)
+	bsp.faces = make([]*Face, count)
 
 	faces := make([]faceData, count)
 	err := binary.Read(r, binary.LittleEndian, faces)
@@ -39,15 +39,15 @@ func (bsp *File) parseFaces(r *io.SectionReader, count int) error {
 
 	for i := 0; i < count; i++ {
 		f := faces[i]
-		bsp.faces[i] = &face{
-			plane:     bsp.planes[f.PlaneID],
-			front:     f.Side == 0,
-			ledges:    bsp.ledges[f.LedgeId : f.LedgeId+int32(f.LedgeNum)],
-			texInfo:   bsp.textureInfo[f.TexInfoID],
-			typeLight: f.TypeLight,
-			baseLight: f.BaseLight,
-			light:     f.Light,
-			lightMap:  f.LightMap,
+		bsp.faces[i] = &Face{
+			plane:       bsp.planes[f.PlaneID],
+			front:       f.Side == 0,
+			Ledges:      bsp.ledges[f.LedgeId : f.LedgeId+int32(f.LedgeNum)],
+			TextureInfo: bsp.textureInfo[f.TexInfoID],
+			TypeLight:   f.TypeLight,
+			BaseLight:   f.BaseLight,
+			light:       f.Light,
+			LightMap:    f.LightMap,
 		}
 	}
 	return nil

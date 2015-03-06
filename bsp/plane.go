@@ -2,17 +2,18 @@ package bsp
 
 import (
 	"encoding/binary"
+	"github.com/thinkofdeath/goquake/vmath"
 	"io"
 )
 
 type plane struct {
-	normal vec3
+	normal vmath.Vector3
 	dist   float32
 	t      int
 }
 
 type planeData struct {
-	Normal vec3
+	Normal vmath.Vector3
 	Dist   float32
 	Type   int32
 }

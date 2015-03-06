@@ -100,7 +100,7 @@ func (m *Matrix4) RotateZ(ang float32) {
 // Multiply multiplies this matrix and the passed matrix
 // together, storing the result in this matrix
 func (m *Matrix4) Multiply(o *Matrix4) {
-	for i := 0; i < 16; i+=4 {
+	for i := 0; i < 16; i += 4 {
 		a, b, c, d := m[i], m[i+1], m[i+2], m[i+3]
 
 		m[i] = a*o[0] + b*o[4] + c*o[8] + d*o[12]
