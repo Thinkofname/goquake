@@ -32,20 +32,7 @@ var (
 	texture      gl.Texture
 	textureLight gl.Texture
 
-	gameProgram       gl.Program
-	gameAPosition     gl.Attribute
-	gameALight        gl.Attribute
-	gameATex          gl.Attribute
-	gameATexInfo      gl.Attribute
-	gameALightInfo    gl.Attribute
-	gameALightType    gl.Attribute
-	gameUPMat         gl.Uniform
-	gameUUMat         gl.Uniform
-	gameUColourMap    gl.Uniform
-	gameUPalette      gl.Uniform
-	gameUTexture      gl.Uniform
-	gameUTextureLight gl.Uniform
-	gameULightStyles  gl.Uniform
+	gameShader *mainShader
 
 	cameraX       float64 = 504
 	cameraY       float64 = 401
@@ -63,14 +50,14 @@ func Init(p *pak.File, initialMap *bsp.File) {
 	// Load textures
 	cm, _ := ioutil.ReadAll(pakFile.Reader("gfx/colormap.lmp"))
 	colourMap = createTexture(glTexture{
-		Data: cm,
+		Data:  cm,
 		Width: 256, Height: 64,
 		Format: gl.Luminance,
 	})
 
 	pm, _ := ioutil.ReadAll(pakFile.Reader("gfx/palette.lmp"))
 	palette = createTexture(glTexture{
-		Data: pm,
+		Data:  pm,
 		Width: 16, Height: 16,
 		Format: gl.RGB,
 	})
@@ -78,31 +65,18 @@ func Init(p *pak.File, initialMap *bsp.File) {
 	dummy := make([]byte, atlasSize*atlasSize)
 
 	texture = createTexture(glTexture{
-		Data: dummy,
+		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
 		Format: gl.Luminance,
 	})
 	textureLight = createTexture(glTexture{
-		Data: dummy,
+		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
 		Format: gl.Luminance,
 		Filter: gl.Linear,
 	})
 
-	gameProgram = compileProgram(gameVertexSource, gameFragmentSource)
-	gameAPosition = gameProgram.AttributeLocation("a_Position")
-	gameALight = gameProgram.AttributeLocation("a_light")
-	gameATex = gameProgram.AttributeLocation("a_tex")
-	gameATexInfo = gameProgram.AttributeLocation("a_texInfo")
-	gameALightInfo = gameProgram.AttributeLocation("a_lightInfo")
-	gameALightType = gameProgram.AttributeLocation("a_lightType")
-	gameUPMat = gameProgram.UniformLocation("pMat")
-	gameUUMat = gameProgram.UniformLocation("uMat")
-	gameUColourMap = gameProgram.UniformLocation("colourMap")
-	gameUPalette = gameProgram.UniformLocation("palette")
-	gameUTexture = gameProgram.UniformLocation("texture")
-	gameUTextureLight = gameProgram.UniformLocation("textureLight")
-	gameULightStyles = gameProgram.UniformLocation("lightStyles")
+	gameShader = initMainShader()
 
 	currentMap = newQMap(initialMap)
 }
@@ -142,28 +116,6 @@ func Draw(width, height int) {
 	cameraMatrix.RotateZ(float32(-cameraRotY))
 	cameraMatrix.RotateX(float32(-cameraRotX - (math.Pi / 2.0)))
 
-	gameProgram.Use()
-	gameUPMat.Matrix4(false, perspectiveMatrix)
-	gameUUMat.Matrix4(false, cameraMatrix)
-
-	// Bind textures
-
-	gl.ActiveTexture(0)
-	palette.Bind(gl.Texture2D)
-	gameUPalette.Int(0)
-
-	gl.ActiveTexture(1)
-	colourMap.Bind(gl.Texture2D)
-	gameUColourMap.Int(1)
-
-	gl.ActiveTexture(2)
-	texture.Bind(gl.Texture2D)
-	gameUTexture.Int(2)
-
-	gl.ActiveTexture(3)
-	textureLight.Bind(gl.Texture2D)
-	gameUTextureLight.Int(3)
-
 	// Setup and render
 
 	gl.Enable(gl.DepthTest)
@@ -171,26 +123,12 @@ func Draw(width, height int) {
 	gl.CullFace(gl.Back)
 	gl.FrontFace(gl.CounterClockWise)
 
-	gameAPosition.Enable()
-	gameALight.Enable()
-	gameATex.Enable()
-	gameATexInfo.Enable()
-	gameALightInfo.Enable()
-	gameALightType.Enable()
-
+	gameShader.bind()
 	currentMap.render()
-
-	gameAPosition.Disable()
-	gameALight.Disable()
-	gameATex.Disable()
-	gameATexInfo.Disable()
-	gameALightInfo.Disable()
-	gameALightType.Disable()
+	gameShader.unbind()
 
 	gl.Disable(gl.CullFaceFlag)
 	gl.Disable(gl.DepthTest)
-
-	gl.Flush()
 }
 
 func MoveForward() {

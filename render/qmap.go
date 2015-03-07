@@ -235,12 +235,7 @@ func newQMap(b *bsp.File) *qMap {
 func (m *qMap) render() {
 	m.mapBuffer.Bind(gl.ArrayBuffer)
 
-	gameAPosition.Pointer(3, gl.Float, false, floatsPerVertex*4, 0)
-	gameALight.Pointer(1, gl.Float, false, floatsPerVertex*4, 4*3)
-	gameATex.Pointer(2, gl.Float, false, floatsPerVertex*4, 4*4)
-	gameATexInfo.Pointer(4, gl.Float, false, floatsPerVertex*4, 4*6)
-	gameALightInfo.Pointer(2, gl.Float, false, floatsPerVertex*4, 4*10)
-	gameALightType.Pointer(1, gl.Float, false, floatsPerVertex*4, 4*12)
+	gameShader.setupPointers()
 	gl.DrawArrays(gl.Triangles, 0, m.count)
 }
 

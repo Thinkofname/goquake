@@ -2,11 +2,12 @@ package render
 
 import (
 	"github.com/thinkofdeath/goquake/render/gl"
+	"reflect"
 )
 
 const (
 	gameVertexSource = `
-attribute vec3 a_Position;
+attribute vec3 a_position;
 attribute float a_light;
 attribute vec2 a_tex;
 attribute vec4 a_texInfo;
@@ -26,7 +27,7 @@ varying float v_lightType;
 const float invTextureSize = 1.0 / 1024;
 
 void main() {
-  gl_Position = pMat * uMat * vec4(a_Position, 1.0);
+  gl_Position = pMat * uMat * vec4(a_position, 1.0);
   v_tex = a_tex;
   v_texInfo = a_texInfo;
   v_light = a_light;
@@ -104,4 +105,28 @@ func compileProgram(vertex, fragment string) gl.Program {
 	program.Link()
 	program.Use()
 	return program
+}
+
+func loadShaderAttribsUniforms(shader interface{}, program gl.Program) {
+	t := reflect.TypeOf(shader).Elem()
+	v := reflect.ValueOf(shader).Elem()
+	l := t.NumField()
+
+	gla := reflect.TypeOf(gl.Attribute(0))
+	glu := reflect.TypeOf(gl.Uniform(0))
+
+	for i := 0; i < l; i++ {
+		f := t.Field(i)
+		if f.Type == gla {
+			name := f.Tag.Get("gl")
+			v.Field(i).Set(reflect.ValueOf(
+				program.AttributeLocation(name),
+			))
+		} else if f.Type == glu {
+			name := f.Tag.Get("gl")
+			v.Field(i).Set(reflect.ValueOf(
+				program.UniformLocation(name),
+			))
+		}
+	}
 }
