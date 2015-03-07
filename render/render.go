@@ -24,7 +24,7 @@ var (
 
 	perspectiveMatrix = vmath.NewMatrix4()
 	cameraMatrix      = vmath.NewMatrix4()
-	lastScreenWidth   = -1
+	lastScreenWidth   = -1 // Used for checking if the perspective matrix needs updating
 	lastScreenHeight  = -1
 
 	colourMap    gl.Texture
@@ -61,36 +61,33 @@ func Init(p *pak.File, initialMap *bsp.File) {
 	pakFile = p
 
 	// Load textures
-
-	colourMap = gl.CreateTexture()
-	colourMap.Bind(gl.Texture2D)
 	cm, _ := ioutil.ReadAll(pakFile.Reader("gfx/colormap.lmp"))
-	colourMap.Image2D(0, gl.Luminance, 256, 64, gl.Luminance, gl.UnsignedByte, cm)
-	colourMap.Parameter(gl.TextureMagFilter, gl.Nearest)
-	colourMap.Parameter(gl.TextureMinFilter, gl.Nearest)
+	colourMap = createTexture(glTexture{
+		Data: cm,
+		Width: 256, Height: 64,
+		Format: gl.Luminance,
+	})
 
-	palette = gl.CreateTexture()
-	palette.Bind(gl.Texture2D)
 	pm, _ := ioutil.ReadAll(pakFile.Reader("gfx/palette.lmp"))
-	palette.Image2D(0, gl.RGB, 16, 16, gl.RGB, gl.UnsignedByte, pm)
-	palette.Parameter(gl.TextureMagFilter, gl.Nearest)
-	palette.Parameter(gl.TextureMinFilter, gl.Nearest)
+	palette = createTexture(glTexture{
+		Data: pm,
+		Width: 16, Height: 16,
+		Format: gl.RGB,
+	})
 
-	texture = gl.CreateTexture()
-	texture.Bind(gl.Texture2D)
-	texture.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, make([]byte, atlasSize*atlasSize))
-	texture.Parameter(gl.TextureMagFilter, gl.Nearest)
-	texture.Parameter(gl.TextureMinFilter, gl.Nearest)
-	texture.Parameter(gl.TextureWrapS, gl.ClampToEdge)
-	texture.Parameter(gl.TextureWrapT, gl.ClampToEdge)
+	dummy := make([]byte, atlasSize*atlasSize)
 
-	textureLight = gl.CreateTexture()
-	textureLight.Bind(gl.Texture2D)
-	textureLight.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, make([]byte, atlasSize*atlasSize))
-	textureLight.Parameter(gl.TextureMagFilter, gl.Linear)
-	textureLight.Parameter(gl.TextureMinFilter, gl.Linear)
-	textureLight.Parameter(gl.TextureWrapS, gl.ClampToEdge)
-	textureLight.Parameter(gl.TextureWrapT, gl.ClampToEdge)
+	texture = createTexture(glTexture{
+		Data: dummy,
+		Width: atlasSize, Height: atlasSize,
+		Format: gl.Luminance,
+	})
+	textureLight = createTexture(glTexture{
+		Data: dummy,
+		Width: atlasSize, Height: atlasSize,
+		Format: gl.Luminance,
+		Filter: gl.Linear,
+	})
 
 	gameProgram = compileProgram(gameVertexSource, gameFragmentSource)
 	gameAPosition = gameProgram.AttributeLocation("a_Position")
