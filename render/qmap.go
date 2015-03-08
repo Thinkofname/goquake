@@ -20,6 +20,31 @@ type qMap struct {
 	stride    int
 }
 
+var (
+	vertexSerializer func(*builder.Buffer, interface{})
+	vertexTypes      []builder.Type
+)
+
+type mapVertex struct {
+	X              float32
+	Y              float32
+	Z              float32
+	TextureX       uint16
+	TextureY       uint16
+	TextureOffsetX int16
+	TextureOffsetY int16
+	TextureWidth   int16
+	TextureHeight  int16
+	LightX         int16
+	LightY         int16
+	Light          uint8
+	LightType      uint8
+}
+
+func init() {
+	vertexSerializer, vertexTypes = builder.Struct(mapVertex{})
+}
+
 func newQMap(b *bsp.File) *qMap {
 	m := &qMap{
 		bsp:        b,
@@ -33,21 +58,7 @@ func newQMap(b *bsp.File) *qMap {
 	}
 	m.atlas.bake()
 
-	data := builder.New(
-		builder.Float,         // X
-		builder.Float,         // Y
-		builder.Float,         // Z
-		builder.UnsignedShort, // Texture X
-		builder.UnsignedShort, // Texture Y
-		builder.Short,         // Texture Info 1
-		builder.Short,         // Texture Info 2
-		builder.Short,         // Texture Info 3
-		builder.Short,         // Texture Info 4
-		builder.Short,         // Light Info X
-		builder.Short,         // Light Info Y
-		builder.UnsignedByte,  // Light
-		builder.UnsignedByte,  // Light Type
-	)
+	data := builder.New(vertexTypes...)
 	m.stride = data.ElementSize()
 
 	// Build the world
@@ -175,19 +186,21 @@ func newQMap(b *bsp.File) *qMap {
 					aTY = float32(math.Floor(float64(aT/16))) - lightT
 				}
 
-				data.Float(model.Origin.X + av.X)
-				data.Float(model.Origin.Y + av.Y)
-				data.Float(model.Origin.Z + av.Z)
-				data.UnsignedShort(uint16(tex.x))
-				data.UnsignedShort(uint16(tex.y))
-				data.Short(int16(aS))
-				data.Short(int16(aT))
-				data.Short(int16(face.TextureInfo.Texture.Width))
-				data.Short(int16(face.TextureInfo.Texture.Height))
-				data.Short(int16(tOffsetX + aTX))
-				data.Short(int16(tOffsetY + aTY))
-				data.UnsignedByte(light)
-				data.UnsignedByte(face.TypeLight)
+				vertexSerializer(data, mapVertex{
+					X:              model.Origin.X + av.X,
+					Y:              model.Origin.Y + av.Y,
+					Z:              model.Origin.Z + av.Z,
+					TextureX:       uint16(tex.x),
+					TextureY:       uint16(tex.y),
+					TextureOffsetX: int16(aS),
+					TextureOffsetY: int16(aT),
+					TextureWidth:   int16(face.TextureInfo.Texture.Width),
+					TextureHeight:  int16(face.TextureInfo.Texture.Height),
+					LightX:         int16(tOffsetX + aTX),
+					LightY:         int16(tOffsetY + aTY),
+					Light:          light,
+					LightType:      face.TypeLight,
+				})
 
 				bS := bv.Dot(s) + face.TextureInfo.DistS
 				bT := bv.Dot(t) + face.TextureInfo.DistT
@@ -199,33 +212,37 @@ func newQMap(b *bsp.File) *qMap {
 					bTY = float32(math.Floor(float64(bT/16))) - lightT
 				}
 
-				data.Float(model.Origin.X + bv.X)
-				data.Float(model.Origin.Y + bv.Y)
-				data.Float(model.Origin.Z + bv.Z)
-				data.UnsignedShort(uint16(tex.x))
-				data.UnsignedShort(uint16(tex.y))
-				data.Short(int16(bS))
-				data.Short(int16(bT))
-				data.Short(int16(face.TextureInfo.Texture.Width))
-				data.Short(int16(face.TextureInfo.Texture.Height))
-				data.Short(int16(tOffsetX + bTX))
-				data.Short(int16(tOffsetY + bTY))
-				data.UnsignedByte(light)
-				data.UnsignedByte(face.TypeLight)
+				vertexSerializer(data, mapVertex{
+					X:              model.Origin.X + bv.X,
+					Y:              model.Origin.Y + bv.Y,
+					Z:              model.Origin.Z + bv.Z,
+					TextureX:       uint16(tex.x),
+					TextureY:       uint16(tex.y),
+					TextureOffsetX: int16(bS),
+					TextureOffsetY: int16(bT),
+					TextureWidth:   int16(face.TextureInfo.Texture.Width),
+					TextureHeight:  int16(face.TextureInfo.Texture.Height),
+					LightX:         int16(tOffsetX + bTX),
+					LightY:         int16(tOffsetY + bTY),
+					Light:          light,
+					LightType:      face.TypeLight,
+				})
 
-				data.Float(model.Origin.X + centerX)
-				data.Float(model.Origin.Y + centerY)
-				data.Float(model.Origin.Z + centerZ)
-				data.UnsignedShort(uint16(tex.x))
-				data.UnsignedShort(uint16(tex.y))
-				data.Short(int16(centerS))
-				data.Short(int16(centerT))
-				data.Short(int16(face.TextureInfo.Texture.Width))
-				data.Short(int16(face.TextureInfo.Texture.Height))
-				data.Short(int16(tOffsetX + centerTX))
-				data.Short(int16(tOffsetY + centerTY))
-				data.UnsignedByte(light)
-				data.UnsignedByte(face.TypeLight)
+				vertexSerializer(data, mapVertex{
+					X:              model.Origin.X + centerX,
+					Y:              model.Origin.Y + centerY,
+					Z:              model.Origin.Z + centerZ,
+					TextureX:       uint16(tex.x),
+					TextureY:       uint16(tex.y),
+					TextureOffsetX: int16(centerS),
+					TextureOffsetY: int16(centerT),
+					TextureWidth:   int16(face.TextureInfo.Texture.Width),
+					TextureHeight:  int16(face.TextureInfo.Texture.Height),
+					LightX:         int16(tOffsetX + centerTX),
+					LightY:         int16(tOffsetY + centerTY),
+					Light:          light,
+					LightType:      face.TypeLight,
+				})
 			}
 		}
 	}
