@@ -2,13 +2,10 @@ package render
 
 import (
 	"github.com/thinkofdeath/goquake/bsp"
+	"github.com/thinkofdeath/goquake/render/builder"
 	"github.com/thinkofdeath/goquake/render/gl"
 	"github.com/thinkofdeath/goquake/vmath"
 	"math"
-)
-
-const (
-	floatsPerVertex = 13
 )
 
 type qMap struct {
@@ -20,6 +17,7 @@ type qMap struct {
 
 	mapBuffer gl.Buffer
 	count     int
+	stride    int
 }
 
 func newQMap(b *bsp.File) *qMap {
@@ -35,7 +33,23 @@ func newQMap(b *bsp.File) *qMap {
 	}
 	m.atlas.bake()
 
-	data := make([]float32, 0, 1000)
+	data := builder.New(
+		builder.Float,         // X
+		builder.Float,         // Y
+		builder.Float,         // Z
+		builder.UnsignedShort, // Texture X
+		builder.UnsignedShort, // Texture Y
+		builder.Short,         // Texture Info 1
+		builder.Short,         // Texture Info 2
+		builder.Short,         // Texture Info 3
+		builder.Short,         // Texture Info 4
+		builder.Short,         // Light Info X
+		builder.Short,         // Light Info Y
+		builder.UnsignedByte,  // Light
+		builder.UnsignedByte,  // Light Type
+	)
+	m.stride = data.ElementSize()
+
 	// Build the world
 	for _, model := range b.Models {
 		for _, face := range model.Faces {
@@ -64,7 +78,7 @@ func newQMap(b *bsp.File) *qMap {
 			centerY /= ec
 			centerZ /= ec
 
-			light := float32(face.BaseLight) / 255
+			light := face.BaseLight
 			if face.BaseLight == 255 {
 				light = 0
 			}
@@ -161,19 +175,19 @@ func newQMap(b *bsp.File) *qMap {
 					aTY = float32(math.Floor(float64(aT/16))) - lightT
 				}
 
-				data = append(data, model.Origin.X+av.X)
-				data = append(data, model.Origin.Y+av.Y)
-				data = append(data, model.Origin.Z+av.Z)
-				data = append(data, light)
-				data = append(data, float32(tex.x))
-				data = append(data, float32(tex.y))
-				data = append(data, aS)
-				data = append(data, aT)
-				data = append(data, float32(face.TextureInfo.Texture.Width))
-				data = append(data, float32(face.TextureInfo.Texture.Height))
-				data = append(data, tOffsetX+aTX)
-				data = append(data, tOffsetY+aTY)
-				data = append(data, float32(face.TypeLight))
+				data.Float(model.Origin.X + av.X)
+				data.Float(model.Origin.Y + av.Y)
+				data.Float(model.Origin.Z + av.Z)
+				data.UnsignedShort(uint16(tex.x))
+				data.UnsignedShort(uint16(tex.y))
+				data.Short(int16(aS))
+				data.Short(int16(aT))
+				data.Short(int16(face.TextureInfo.Texture.Width))
+				data.Short(int16(face.TextureInfo.Texture.Height))
+				data.Short(int16(tOffsetX + aTX))
+				data.Short(int16(tOffsetY + aTY))
+				data.UnsignedByte(light)
+				data.UnsignedByte(face.TypeLight)
 
 				bS := bv.Dot(s) + face.TextureInfo.DistS
 				bT := bv.Dot(t) + face.TextureInfo.DistT
@@ -185,33 +199,33 @@ func newQMap(b *bsp.File) *qMap {
 					bTY = float32(math.Floor(float64(bT/16))) - lightT
 				}
 
-				data = append(data, model.Origin.X+bv.X)
-				data = append(data, model.Origin.Y+bv.Y)
-				data = append(data, model.Origin.Z+bv.Z)
-				data = append(data, light)
-				data = append(data, float32(tex.x))
-				data = append(data, float32(tex.y))
-				data = append(data, bS)
-				data = append(data, bT)
-				data = append(data, float32(face.TextureInfo.Texture.Width))
-				data = append(data, float32(face.TextureInfo.Texture.Height))
-				data = append(data, tOffsetX+bTX)
-				data = append(data, tOffsetY+bTY)
-				data = append(data, float32(face.TypeLight))
+				data.Float(model.Origin.X + bv.X)
+				data.Float(model.Origin.Y + bv.Y)
+				data.Float(model.Origin.Z + bv.Z)
+				data.UnsignedShort(uint16(tex.x))
+				data.UnsignedShort(uint16(tex.y))
+				data.Short(int16(bS))
+				data.Short(int16(bT))
+				data.Short(int16(face.TextureInfo.Texture.Width))
+				data.Short(int16(face.TextureInfo.Texture.Height))
+				data.Short(int16(tOffsetX + bTX))
+				data.Short(int16(tOffsetY + bTY))
+				data.UnsignedByte(light)
+				data.UnsignedByte(face.TypeLight)
 
-				data = append(data, model.Origin.X+centerX)
-				data = append(data, model.Origin.Y+centerY)
-				data = append(data, model.Origin.Z+centerZ)
-				data = append(data, light)
-				data = append(data, float32(tex.x))
-				data = append(data, float32(tex.y))
-				data = append(data, centerS)
-				data = append(data, centerT)
-				data = append(data, float32(face.TextureInfo.Texture.Width))
-				data = append(data, float32(face.TextureInfo.Texture.Height))
-				data = append(data, tOffsetX+centerTX)
-				data = append(data, tOffsetY+centerTY)
-				data = append(data, float32(face.TypeLight))
+				data.Float(model.Origin.X + centerX)
+				data.Float(model.Origin.Y + centerY)
+				data.Float(model.Origin.Z + centerZ)
+				data.UnsignedShort(uint16(tex.x))
+				data.UnsignedShort(uint16(tex.y))
+				data.Short(int16(centerS))
+				data.Short(int16(centerT))
+				data.Short(int16(face.TextureInfo.Texture.Width))
+				data.Short(int16(face.TextureInfo.Texture.Height))
+				data.Short(int16(tOffsetX + centerTX))
+				data.Short(int16(tOffsetY + centerTY))
+				data.UnsignedByte(light)
+				data.UnsignedByte(face.TypeLight)
 			}
 		}
 	}
@@ -220,8 +234,8 @@ func newQMap(b *bsp.File) *qMap {
 
 	m.mapBuffer = gl.CreateBuffer()
 	m.mapBuffer.Bind(gl.ArrayBuffer)
-	m.mapBuffer.DataFloat32(data, gl.StaticDraw)
-	m.count = len(data) / floatsPerVertex
+	m.mapBuffer.Data(data.Data(), gl.StaticDraw)
+	m.count = data.Count()
 
 	texture.Bind(gl.Texture2D)
 	texture.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, m.atlas.buffer)
@@ -235,7 +249,7 @@ func newQMap(b *bsp.File) *qMap {
 func (m *qMap) render() {
 	m.mapBuffer.Bind(gl.ArrayBuffer)
 
-	gameShader.setupPointers()
+	gameShader.setupPointers(m.stride)
 	gl.DrawArrays(gl.Triangles, 0, m.count)
 }
 

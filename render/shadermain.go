@@ -61,13 +61,13 @@ func (m *mainShader) bind() {
 	m.LightType.Enable()
 }
 
-func (m *mainShader) setupPointers() {
-	m.Position.Pointer(3, gl.Float, false, floatsPerVertex*4, 0)
-	m.Light.Pointer(1, gl.Float, false, floatsPerVertex*4, 4*3)
-	m.TexturePos.Pointer(2, gl.Float, false, floatsPerVertex*4, 4*4)
-	m.TextureInfo.Pointer(4, gl.Float, false, floatsPerVertex*4, 4*6)
-	m.LightInfo.Pointer(2, gl.Float, false, floatsPerVertex*4, 4*10)
-	m.LightType.Pointer(1, gl.Float, false, floatsPerVertex*4, 4*12)
+func (m *mainShader) setupPointers(stride int) {
+	m.Position.Pointer(3, gl.Float, false, stride, 0)
+	m.TexturePos.Pointer(2, gl.UnsignedShort, false, stride, 4*3)
+	m.TextureInfo.Pointer(4, gl.Short, false, stride, 4*3+2*2)
+	m.LightInfo.Pointer(2, gl.Short, false, stride, 4*3+2*6)
+	m.Light.Pointer(1, gl.UnsignedByte, false, stride, 4*3+2*8)
+	m.LightType.Pointer(1, gl.UnsignedByte, false, stride, 4*3+2*8+1)
 }
 
 func (m *mainShader) unbind() {
@@ -99,12 +99,13 @@ varying vec2 v_lightInfo;
 varying float v_lightType;
 
 const float invTextureSize = 1.0 / 1024;
+const float invPackSize = 1.0;
 
 void main() {
   gl_Position = pMat * uMat * vec4(a_position, 1.0);
   v_tex = a_tex;
-  v_texInfo = a_texInfo;
-  v_light = a_light;
+  v_texInfo = a_texInfo * invPackSize;
+  v_light = a_light / 255.0;
   v_lightInfo = a_lightInfo * invTextureSize;
   v_lightType = 1.0;
   int type = int(a_lightType + 0.5);
@@ -137,7 +138,7 @@ vec3 lookupColour(float col, float light);
 void main() {
   float light = v_light;
   if (v_lightInfo.x >= 0.0) {
-    light = clamp((1.0 - (texture2D(textureLight, v_lightInfo).r)), 0.0, 63.0/64.0); // TODO: Fix the clamp
+    light = 1.0 - (texture2D(textureLight, v_lightInfo).r);
   }
   light *= v_lightType;
   vec2 offset = mod(v_texInfo.xy, v_texInfo.zw);
