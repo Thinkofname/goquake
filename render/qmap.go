@@ -6,6 +6,8 @@ import (
 	"github.com/thinkofdeath/goquake/render/gl"
 	"github.com/thinkofdeath/goquake/vmath"
 	"math"
+	"strings"
+	"time"
 )
 
 type qMap struct {
@@ -15,9 +17,16 @@ type qMap struct {
 	lightAtlas *textureAltas
 	textures   []*atlasTexture
 
-	mapBuffer gl.Buffer
-	count     int
-	stride    int
+	mapBuffer    gl.Buffer
+	count        int
+	stride       int
+	skyBuffer    gl.Buffer
+	skyBoxBuffer gl.Buffer
+	skyCount     int
+	skyBoxCount  int
+	skyTexture   int
+	skyMin       vmath.Vector3
+	skyMax       vmath.Vector3
 }
 
 var (
@@ -50,6 +59,7 @@ func newQMap(b *bsp.File) *qMap {
 		bsp:        b,
 		atlas:      newAtlas(atlasSize, atlasSize, false),
 		lightAtlas: newAtlas(atlasSize, atlasSize, true),
+		skyTexture: -1,
 	}
 
 	for _, texture := range b.Textures {
@@ -58,14 +68,28 @@ func newQMap(b *bsp.File) *qMap {
 	}
 	m.atlas.bake()
 
-	data := builder.New(vertexTypes...)
-	m.stride = data.ElementSize()
+	dataNormal := builder.New(vertexTypes...)
+	dataSky := builder.New(vertexTypes...)
+	m.stride = dataNormal.ElementSize()
 
 	// Build the world
 	for _, model := range b.Models {
 		for _, face := range model.Faces {
 			if face.TextureInfo.Texture.Name == "trigger" {
 				continue
+			}
+
+			var data *builder.Buffer
+			var isSky bool
+			if strings.HasPrefix(face.TextureInfo.Texture.Name, "sky") {
+				if m.skyTexture != -1 && m.skyTexture != face.TextureInfo.Texture.ID {
+					panic("too many sky textures")
+				}
+				m.skyTexture = face.TextureInfo.Texture.ID
+				data = dataSky
+				isSky = true
+			} else {
+				data = dataNormal
 			}
 
 			centerX := float32(0)
@@ -176,6 +200,30 @@ func newQMap(b *bsp.File) *qMap {
 					bv = b.Edges[-l].Vertex1
 				}
 
+				// Sky things
+				if isSky {
+					for _, v := range []*vmath.Vector3{av, bv} {
+						if model.Origin.X+v.X < m.skyMin.X {
+							m.skyMin.X = model.Origin.X + v.X
+						}
+						if model.Origin.Y+v.Y < m.skyMin.Y {
+							m.skyMin.Y = model.Origin.Y + v.Y
+						}
+						if model.Origin.X+v.X > m.skyMax.X {
+							m.skyMax.X = model.Origin.X + v.X
+						}
+						if model.Origin.Y+v.Y > m.skyMax.Y {
+							m.skyMax.Y = model.Origin.Y + v.Y
+						}
+						if model.Origin.Z+v.Z > m.skyMax.Z {
+							m.skyMax.Z = model.Origin.Z + v.Z
+						}
+						if model.Origin.Z+v.Z < m.skyMin.Z {
+							m.skyMin.Z = model.Origin.Z + v.Z
+						}
+					}
+				}
+
 				aS := av.Dot(s) + face.TextureInfo.DistS
 				aT := av.Dot(t) + face.TextureInfo.DistT
 
@@ -251,8 +299,25 @@ func newQMap(b *bsp.File) *qMap {
 
 	m.mapBuffer = gl.CreateBuffer()
 	m.mapBuffer.Bind(gl.ArrayBuffer)
-	m.mapBuffer.Data(data.Data(), gl.StaticDraw)
-	m.count = data.Count()
+	m.mapBuffer.Data(dataNormal.Data(), gl.StaticDraw)
+	m.count = dataNormal.Count()
+
+	m.skyBuffer = gl.CreateBuffer()
+	m.skyBuffer.Bind(gl.ArrayBuffer)
+	m.skyBuffer.Data(dataSky.Data(), gl.StaticDraw)
+	m.skyCount = dataSky.Count()
+
+	m.skyMax.X += 2000
+	m.skyMax.Y += 2000
+	m.skyMin.X -= 2000
+	m.skyMin.Y -= 2000
+	skyBox := builder.New(vertexTypes...)
+	m.buildSkyBox(skyBox)
+
+	m.skyBoxBuffer = gl.CreateBuffer()
+	m.skyBoxBuffer.Bind(gl.ArrayBuffer)
+	m.skyBoxBuffer.Data(skyBox.Data(), gl.StaticDraw)
+	m.skyBoxCount = skyBox.Count()
 
 	texture.Bind(gl.Texture2D)
 	texture.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, m.atlas.buffer)
@@ -264,12 +329,122 @@ func newQMap(b *bsp.File) *qMap {
 }
 
 func (m *qMap) render() {
+	gl.Enable(gl.StencilTest)
+	gl.ColorMask(false, false, false, false)
+	gl.StencilMask(0xFF)
+	gl.Clear(gl.StencilBufferBit)
+	gl.StencilFunc(gl.Never, 1, 0xFF)
+	gl.StencilOp(gl.Replace, gl.Keep, gl.Keep)
+
+	gameSkyShader.bind()
+	m.skyBuffer.Bind(gl.ArrayBuffer)
+
+	gameSkyShader.TimeOffset.Float(-1)
+
+	gameSkyShader.setupPointers(m.stride)
+	gl.DrawArrays(gl.Triangles, 0, m.skyCount)
+	gameSkyShader.unbind()
+
+	gl.ColorMask(true, true, true, true)
+	gl.StencilMask(0x00)
+	gl.StencilFunc(gl.Equal, 1, 0xFF)
+
+	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
+	gl.Clear(gl.ColorBufferBit)
+	gameSkyShader.bind()
+	m.skyBoxBuffer.Bind(gl.ArrayBuffer)
+
+	t := time.Second * 30
+	gameSkyShader.TimeOffset.Float(float32(time.Now().UnixNano()%int64(t*2)) / float32(t))
+
+	gameSkyShader.setupPointers(m.stride)
+	gl.DrawArrays(gl.Triangles, 0, m.skyBoxCount)
+	gameSkyShader.unbind()
+
+	gl.Disable(gl.StencilTest)
+	///
+
+	gameShader.bind()
 	m.mapBuffer.Bind(gl.ArrayBuffer)
 
 	gameShader.setupPointers(m.stride)
 	gl.DrawArrays(gl.Triangles, 0, m.count)
+	gameShader.unbind()
 }
 
 func (m *qMap) cleanup() {
 	m.mapBuffer.Delete()
+	m.skyBoxBuffer.Delete()
+	m.skyBuffer.Delete()
+}
+
+func (m *qMap) buildSkyBox(b *builder.Buffer) {
+	tex := m.textures[m.skyTexture]
+
+	w := int16(tex.width / 2)
+
+	for z := 0; z < 2; z++ {
+		offset := float32(100 * z)
+		vertexSerializer(b, mapVertex{
+			X:             m.skyMin.X,
+			Y:             m.skyMin.Y,
+			Z:             m.skyMax.Z + offset,
+			TextureX:      uint16(tex.x + int(w)*z),
+			TextureY:      uint16(tex.y),
+			TextureWidth:  w,
+			TextureHeight: int16(tex.height),
+			LightType:     uint8(z),
+		})
+		vertexSerializer(b, mapVertex{
+			X:             m.skyMin.X,
+			Y:             m.skyMax.Y,
+			Z:             m.skyMax.Z + offset,
+			TextureX:      uint16(tex.x + int(w)*z),
+			TextureY:      uint16(tex.y),
+			TextureWidth:  w,
+			TextureHeight: int16(tex.height),
+			LightType:     uint8(z),
+		})
+		vertexSerializer(b, mapVertex{
+			X:             m.skyMax.X,
+			Y:             m.skyMin.Y,
+			Z:             m.skyMax.Z + offset,
+			TextureX:      uint16(tex.x + int(w)*z),
+			TextureY:      uint16(tex.y),
+			TextureWidth:  w,
+			TextureHeight: int16(tex.height),
+			LightType:     uint8(z),
+		})
+
+		vertexSerializer(b, mapVertex{
+			X:             m.skyMin.X,
+			Y:             m.skyMax.Y,
+			Z:             m.skyMax.Z + offset,
+			TextureX:      uint16(tex.x + int(w)*z),
+			TextureY:      uint16(tex.y),
+			TextureWidth:  w,
+			TextureHeight: int16(tex.height),
+			LightType:     uint8(z),
+		})
+		vertexSerializer(b, mapVertex{
+			X:             m.skyMax.X,
+			Y:             m.skyMax.Y,
+			Z:             m.skyMax.Z + offset,
+			TextureX:      uint16(tex.x + int(w)*z),
+			TextureY:      uint16(tex.y),
+			TextureWidth:  w,
+			TextureHeight: int16(tex.height),
+			LightType:     uint8(z),
+		})
+		vertexSerializer(b, mapVertex{
+			X:             m.skyMax.X,
+			Y:             m.skyMin.Y,
+			Z:             m.skyMax.Z + offset,
+			TextureX:      uint16(tex.x + int(w)*z),
+			TextureY:      uint16(tex.y),
+			TextureWidth:  w,
+			TextureHeight: int16(tex.height),
+			LightType:     uint8(z),
+		})
+	}
 }

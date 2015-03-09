@@ -7,11 +7,13 @@ import (
 )
 
 const (
-	ColorBufferBit ClearFlags = gl.COLOR_BUFFER_BIT
-	DepthBufferBit ClearFlags = gl.DEPTH_BUFFER_BIT
+	ColorBufferBit   ClearFlags = gl.COLOR_BUFFER_BIT
+	DepthBufferBit   ClearFlags = gl.DEPTH_BUFFER_BIT
+	StencilBufferBit ClearFlags = gl.STENCIL_BUFFER_BIT
 
 	DepthTest    Flag = gl.DEPTH_TEST
 	CullFaceFlag Flag = gl.CULL_FACE
+	StencilTest  Flag = gl.STENCIL_TEST
 
 	Back  Face = gl.BACK
 	Front Face = gl.FRONT
@@ -20,6 +22,13 @@ const (
 	CounterClockWise FaceDirection = gl.CCW
 
 	Triangles DrawType = gl.TRIANGLES
+
+	Never Func = gl.NEVER
+	Equal Func = gl.EQUAL
+
+	Replace Op = gl.REPLACE
+
+	Keep Action = gl.KEEP
 )
 
 func Init() {
@@ -34,6 +43,9 @@ type (
 	Face          uint32
 	FaceDirection uint32
 	DrawType      uint32
+	Func          uint32
+	Op            uint32
+	Action        uint32
 )
 
 func Viewport(x, y, width, height int) {
@@ -81,4 +93,28 @@ func checkError() {
 
 func Flush() {
 	gl.Flush()
+}
+
+func DepthMask(f bool) {
+	gl.DepthMask(f)
+}
+
+func ColorMask(r, g, b, a bool) {
+	gl.ColorMask(r, g, b, a)
+}
+
+func StencilFunc(f Func, ref, mask int) {
+	gl.StencilFunc(uint32(f), int32(ref), uint32(mask))
+}
+
+func StencilMask(mask int) {
+	gl.StencilMask(uint32(mask))
+}
+
+func StencilOp(op Op, fail, pass Action) {
+	gl.StencilOp(uint32(op), uint32(fail), uint32(pass))
+}
+
+func ClearStencil(i int) {
+	gl.ClearStencil(int32(i))
 }

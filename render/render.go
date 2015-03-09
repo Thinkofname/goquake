@@ -33,6 +33,7 @@ var (
 	textureLight gl.Texture
 
 	gameShader *mainShader
+	gameSkyShader *skyShader
 
 	cameraX       float64 = 504
 	cameraY       float64 = 401
@@ -77,6 +78,7 @@ func Init(p *pak.File, initialMap *bsp.File) {
 	})
 
 	gameShader = initMainShader()
+	gameSkyShader = initSkyShader()
 
 	currentMap = newQMap(initialMap)
 }
@@ -123,9 +125,7 @@ func Draw(width, height int) {
 	gl.CullFace(gl.Back)
 	gl.FrontFace(gl.CounterClockWise)
 
-	gameShader.bind()
 	currentMap.render()
-	gameShader.unbind()
 
 	gl.Disable(gl.CullFaceFlag)
 	gl.Disable(gl.DepthTest)
