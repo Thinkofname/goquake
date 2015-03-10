@@ -42,12 +42,18 @@ func (b Buffer) Data(data []byte, usage BufferUsage) {
 	if currentBuffer != b {
 		panic("buffer not bound")
 	}
+	if len(data) == 0 {
+		return
+	}
 	gl.BufferData(uint32(currentBufferTarget), len(data), gl.Ptr(data), uint32(usage))
 }
 
 func (b Buffer) DataFloat32(data []float32, usage BufferUsage) {
 	if currentBuffer != b {
 		panic("buffer not bound")
+	}
+	if len(data) == 0 {
+		return
 	}
 	gl.BufferData(uint32(currentBufferTarget), len(data)*4, gl.Ptr(data), uint32(usage))
 }
