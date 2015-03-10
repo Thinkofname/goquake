@@ -14,10 +14,15 @@ const (
 	TextureMagFilter TextureParameter = gl.TEXTURE_MAG_FILTER
 	TextureWrapS     TextureParameter = gl.TEXTURE_WRAP_S
 	TextureWrapT     TextureParameter = gl.TEXTURE_WRAP_T
+	TextureMaxLevel  TextureParameter = gl.TEXTURE_MAX_LEVEL
 
-	Nearest     TextureValue = gl.NEAREST
-	Linear      TextureValue = gl.LINEAR
-	ClampToEdge TextureValue = gl.CLAMP_TO_EDGE
+	Nearest              TextureValue = gl.NEAREST
+	Linear               TextureValue = gl.LINEAR
+	LinearMipmapLinear   TextureValue = gl.LINEAR_MIPMAP_LINEAR
+	LinearMipmapNearest  TextureValue = gl.LINEAR_MIPMAP_NEAREST
+	NearestMipmapNearest TextureValue = gl.NEAREST_MIPMAP_NEAREST
+	NearestMipmapLinear  TextureValue = gl.NEAREST_MIPMAP_LINEAR
+	ClampToEdge          TextureValue = gl.CLAMP_TO_EDGE
 )
 
 // State tracking

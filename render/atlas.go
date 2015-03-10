@@ -54,14 +54,15 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 
 	var p *atlasPart
 	p, a.root = findFree(a.root, w, h)
-	targetX := p.x
-	targetY := p.y
 
-	if targetX == -1 || targetY == -1 {
+	if p == nil {
 		panic("atlas full")
 	}
 
-	data := picture.Data
+	targetX := p.x
+	targetY := p.y
+
+	/*data := picture.Data
 	for y := 0; y < h; y++ {
 		index := (targetY+y)*a.width + targetX
 		for x := 0; x < w; x++ {
@@ -73,7 +74,8 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 			}
 			a.buffer[index+x] = safeGetPixel(data, px, py, picture.Width, picture.Height)
 		}
-	}
+	}*/
+	copyImage(picture.Data, a.buffer, targetX, targetY, w, h, a.width, a.height, a.padded)
 
 	tx := targetX
 	ty := targetY
@@ -109,6 +111,25 @@ func safeGetPixel(data []byte, x, y, w, h int) byte {
 		y = h - 1
 	}
 	return data[y*w+x]
+}
+
+func copyImage(data, buffer []byte, targetX, targetY, w, h, width, height int, padded bool) {
+	for y := 0; y < h; y++ {
+		index := (targetY+y)*width + targetX
+		for x := 0; x < w; x++ {
+			px := x
+			py := y
+			pw := w
+			ph := h
+			if padded {
+				px--
+				py--
+				pw -= 2
+				ph -= 2
+			}
+			buffer[index+x] = safeGetPixel(data, px, py, pw, ph)
+		}
+	}
 }
 
 func findFree(parts []*atlasPart, width, height int) (*atlasPart, []*atlasPart) {

@@ -70,6 +70,10 @@ func (b *Buffer) Float(f float32) {
 	b.buf.Write(d)
 }
 
+func (b *Buffer) WriteBuffer(o *Buffer) {
+	o.buf.WriteTo(&b.buf)
+}
+
 func (b *Buffer) Count() int {
 	return b.buf.Len() / b.elemSize
 }

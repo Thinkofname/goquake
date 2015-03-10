@@ -13,9 +13,10 @@ import (
 type qMap struct {
 	bsp *bsp.File
 
-	atlas      *textureAltas
-	lightAtlas *textureAltas
-	textures   []*atlasTexture
+	atlas       *textureAltas
+	mipTextures [3][]byte
+	lightAtlas  *textureAltas
+	textures    []*atlasTexture
 
 	mapBuffer    gl.Buffer
 	count        int
@@ -63,21 +64,41 @@ func newQMap(b *bsp.File) *qMap {
 		textures:   make([]*atlasTexture, len(b.Textures)),
 	}
 
+	for j := 0; j < 3; j++ {
+		size := atlasSize >> uint(j+1)
+		m.mipTextures[j] = make([]byte, size*size)
+	}
+
 	for i, texture := range b.Textures {
 		if texture == nil {
 			continue
 		}
 		tx := m.atlas.addPicture(texture.Pictures[0])
 		m.textures[i] = tx
+		for j := 0; j < 3; j++ {
+			size := atlasSize >> uint(j+1)
+			copyImage(
+				texture.Pictures[1+j].Data,
+				m.mipTextures[j],
+				tx.x>>uint(j+1),
+				tx.y>>uint(j+1),
+				tx.width>>uint(j+1),
+				tx.height>>uint(j+1),
+				size, size,
+				false,
+			)
+		}
 	}
+
 	m.atlas.bake()
 
-	dataNormal := builder.New(vertexTypes...)
-	dataSky := builder.New(vertexTypes...)
-	m.stride = dataNormal.ElementSize()
+	bufferNormal := builder.New(vertexTypes...)
+	bufferSky := builder.New(vertexTypes...)
+	m.stride = bufferNormal.ElementSize()
 
 	// Build the world
 	for _, model := range b.Models {
+		model := model
 		for _, face := range model.Faces {
 			if face.TextureInfo.Texture == nil || face.TextureInfo.Texture.Name == "trigger" {
 				continue
@@ -90,16 +111,16 @@ func newQMap(b *bsp.File) *qMap {
 					panic("too many sky textures")
 				}
 				m.skyTexture = face.TextureInfo.Texture.ID
-				data = dataSky
+				data = bufferSky
 				isSky = true
 			} else {
-				data = dataNormal
+				data = bufferNormal
 			}
 
 			switch face.TextureInfo.Texture.Name[0] {
-				case '+', '*':
-					face.BaseLight = 127
-					face.TypeLight = 0xFF
+			case '+', '*':
+				face.BaseLight = 127
+				face.TypeLight = 0xFF
 			}
 
 			centerX := float32(0)
@@ -309,13 +330,13 @@ func newQMap(b *bsp.File) *qMap {
 
 	m.mapBuffer = gl.CreateBuffer()
 	m.mapBuffer.Bind(gl.ArrayBuffer)
-	m.mapBuffer.Data(dataNormal.Data(), gl.StaticDraw)
-	m.count = dataNormal.Count()
+	m.mapBuffer.Data(bufferNormal.Data(), gl.StaticDraw)
+	m.count = bufferNormal.Count()
 
 	m.skyBuffer = gl.CreateBuffer()
 	m.skyBuffer.Bind(gl.ArrayBuffer)
-	m.skyBuffer.Data(dataSky.Data(), gl.StaticDraw)
-	m.skyCount = dataSky.Count()
+	m.skyBuffer.Data(bufferSky.Data(), gl.StaticDraw)
+	m.skyCount = bufferSky.Count()
 
 	m.skyMax.X += 2000
 	m.skyMax.Y += 2000
@@ -331,6 +352,11 @@ func newQMap(b *bsp.File) *qMap {
 
 	texture.Bind(gl.Texture2D)
 	texture.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, m.atlas.buffer)
+
+	for j := 0; j < 3; j++ {
+		size := atlasSize >> uint(j+1)
+		texture.Image2D(1 + j, gl.Luminance, size, size, gl.Luminance, gl.UnsignedByte, m.mipTextures[j])
+	}
 
 	textureLight.Bind(gl.Texture2D)
 	textureLight.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, m.lightAtlas.buffer)

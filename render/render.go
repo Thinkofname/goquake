@@ -69,7 +69,11 @@ func Init(p pak.File, initialMap *bsp.File) {
 		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
 		Format: gl.Luminance,
+		Filter: gl.Nearest,
+		MinFilter: gl.NearestMipmapNearest,
 	})
+	texture.Parameter(gl.TextureMaxLevel, 3)
+
 	textureLight = createTexture(glTexture{
 		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
