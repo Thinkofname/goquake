@@ -60,11 +60,15 @@ func newQMap(b *bsp.File) *qMap {
 		atlas:      newAtlas(atlasSize, atlasSize, false),
 		lightAtlas: newAtlas(atlasSize, atlasSize, true),
 		skyTexture: -1,
+		textures:   make([]*atlasTexture, len(b.Textures)),
 	}
 
-	for _, texture := range b.Textures {
+	for i, texture := range b.Textures {
+		if texture == nil {
+			continue
+		}
 		tx := m.atlas.addPicture(texture.Pictures[0])
-		m.textures = append(m.textures, tx)
+		m.textures[i] = tx
 	}
 	m.atlas.bake()
 
@@ -75,7 +79,7 @@ func newQMap(b *bsp.File) *qMap {
 	// Build the world
 	for _, model := range b.Models {
 		for _, face := range model.Faces {
-			if face.TextureInfo.Texture.Name == "trigger" {
+			if face.TextureInfo.Texture == nil || face.TextureInfo.Texture.Name == "trigger" {
 				continue
 			}
 

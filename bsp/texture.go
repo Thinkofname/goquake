@@ -28,6 +28,10 @@ func (bsp *File) parseTextures(r *io.SectionReader) error {
 			return err
 		}
 
+		if offset == -1 {
+			continue
+		}
+
 		tex, err := parseTexture(io.NewSectionReader(r, int64(offset), 0xFFFFFF))
 		if err != nil {
 			return err

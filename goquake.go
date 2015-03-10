@@ -41,6 +41,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Check for the full game
+	p2, err := pak.FromFile("id1/PAK1.PAK")
+	if err == nil {
+		p = pak.Join(p, p2)
+	}
+
 	defer p.Close()
 	bsp, err := bsp.ParseBSPFile(p.Reader("maps/start.bsp"))
 	if err != nil {

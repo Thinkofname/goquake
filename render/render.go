@@ -20,7 +20,7 @@ const (
 
 var (
 	currentMap *qMap
-	pakFile    *pak.File
+	pakFile    pak.File
 
 	perspectiveMatrix = vmath.NewMatrix4()
 	cameraMatrix      = vmath.NewMatrix4()
@@ -43,7 +43,7 @@ var (
 	movingForward bool
 )
 
-func Init(p *pak.File, initialMap *bsp.File) {
+func Init(p pak.File, initialMap *bsp.File) {
 	gl.Init()
 
 	pakFile = p
