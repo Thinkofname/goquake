@@ -383,6 +383,9 @@ func (m *qMap) cleanup() {
 }
 
 func (m *qMap) buildSkyBox(b *builder.Buffer) {
+	if m.skyTexture == -1 {
+		return
+	}
 	tex := m.textures[m.skyTexture]
 
 	w := int16(tex.width / 2)
