@@ -136,9 +136,9 @@ const float invTextureSize = 1.0 / 1024;
 vec3 lookupColour(float col, float light);
 
 void main() {
-  float light = v_light;
+  float light = 1.0 - v_light;
   if (v_lightInfo.x >= 0.0) {
-    light = 1.0 - (texture2D(textureLight, v_lightInfo).r);
+    light = light - (texture2D(textureLight, v_lightInfo).r);
   }
   light *= v_lightType;
   vec2 offset = mod(v_texInfo.xy, v_texInfo.zw);

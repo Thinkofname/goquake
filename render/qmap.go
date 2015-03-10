@@ -96,6 +96,12 @@ func newQMap(b *bsp.File) *qMap {
 				data = dataNormal
 			}
 
+			switch face.TextureInfo.Texture.Name[0] {
+				case '+', '*':
+					face.BaseLight = 127
+					face.TypeLight = 0xFF
+			}
+
 			centerX := float32(0)
 			centerY := float32(0)
 			centerZ := float32(0)
