@@ -99,7 +99,7 @@ varying vec2 v_lightInfo;
 varying vec2 v_pos;
 varying float v_lightType;
 
-const float invTextureSize = 1.0 / 1024;
+const float invTextureSize = 1.0 / 1024.0;
 const float invPackSize = 1.0;
 
 void main() {
@@ -136,8 +136,8 @@ vec3 lookupColour(float col, float light);
 
 void main() {
   float light = 0.5;
-  vec2 offset = mod(v_pos * 1024.0 + timeOffset * v_texInfo.z * (2.0 - v_lightType), vec2(v_texInfo.z, v_texInfo.w));
-  float col = texture2D(texture, (v_tex.xy + offset) * invTextureSize).r;
+  vec2 offset = mod(v_pos * 1024.0 + timeOffset * v_texInfo.z * (2.0 - v_lightType), v_texInfo.zw);
+  float col = textureLod(texture, (v_tex.xy + offset) * invTextureSize, 4.0 - gl_FragCoord.w * 3000.0).r;
   gl_FragColor = vec4(lookupColour(col, light), 1.0);
 }
 

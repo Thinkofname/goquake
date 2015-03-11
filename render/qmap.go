@@ -2,10 +2,15 @@ package render
 
 import (
 	"github.com/thinkofdeath/goquake/bsp"
+	"github.com/thinkofdeath/goquake/pak"
 	"github.com/thinkofdeath/goquake/render/builder"
 	"github.com/thinkofdeath/goquake/render/gl"
 	"github.com/thinkofdeath/goquake/vmath"
+	"image"
+	"image/png"
+	"io/ioutil"
 	"math"
+	"os"
 	"strings"
 	"time"
 )
@@ -58,8 +63,8 @@ func init() {
 func newQMap(b *bsp.File) *qMap {
 	m := &qMap{
 		bsp:        b,
-		atlas:      newAtlas(atlasSize, atlasSize, false),
-		lightAtlas: newAtlas(atlasSize, atlasSize, true),
+		atlas:      newAtlas(atlasSize, atlasSize, 0),
+		lightAtlas: newAtlas(atlasSize, atlasSize, 1),
 		skyTexture: -1,
 		textures:   make([]*atlasTexture, len(b.Textures)),
 	}
@@ -77,15 +82,16 @@ func newQMap(b *bsp.File) *qMap {
 		m.textures[i] = tx
 		for j := 0; j < 3; j++ {
 			size := atlasSize >> uint(j+1)
+			p := 0 // 8 >> uint(j + 1)
 			copyImage(
 				texture.Pictures[1+j].Data,
 				m.mipTextures[j],
-				tx.x>>uint(j+1),
-				tx.y>>uint(j+1),
-				tx.width>>uint(j+1),
-				tx.height>>uint(j+1),
+				tx.x>>uint(j+1)-p,
+				tx.y>>uint(j+1)-p,
+				tx.width>>uint(j+1)+(p<<1),
+				tx.height>>uint(j+1)+(p<<1),
 				size, size,
-				false,
+				p,
 			)
 		}
 	}
@@ -355,7 +361,7 @@ func newQMap(b *bsp.File) *qMap {
 
 	for j := 0; j < 3; j++ {
 		size := atlasSize >> uint(j+1)
-		texture.Image2D(1 + j, gl.Luminance, size, size, gl.Luminance, gl.UnsignedByte, m.mipTextures[j])
+		texture.Image2D(1+j, gl.Luminance, size, size, gl.Luminance, gl.UnsignedByte, m.mipTextures[j])
 	}
 
 	textureLight.Bind(gl.Texture2D)
@@ -486,4 +492,25 @@ func (m *qMap) buildSkyBox(b *builder.Buffer) {
 			LightType:     uint8(z),
 		})
 	}
+}
+
+func dumpTexture(data []byte, width, height int, p pak.File, name string) {
+	cm, _ := ioutil.ReadAll(pakFile.Reader("gfx/colormap.lmp"))
+	pm, _ := ioutil.ReadAll(pakFile.Reader("gfx/palette.lmp"))
+
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for i, d := range data {
+		ind := int(cm[32*64+int(d)])
+		img.Pix[i*4+0] = pm[ind*3+0]
+		img.Pix[i*4+1] = pm[ind*3+1]
+		img.Pix[i*4+2] = pm[ind*3+2]
+		img.Pix[i*4+3] = 0xff
+	}
+
+	f, err := os.Create(name)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	png.Encode(f, img)
 }

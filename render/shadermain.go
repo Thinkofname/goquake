@@ -98,7 +98,7 @@ varying float v_light;
 varying vec2 v_lightInfo;
 varying float v_lightType;
 
-const float invTextureSize = 1.0 / 1024;
+const float invTextureSize = 1.0 / 1024.0;
 const float invPackSize = 1.0;
 
 void main() {
@@ -118,6 +118,7 @@ void main() {
 }
 `
 	gameFragmentSource = `
+#version 130
 precision mediump float;
 
 uniform sampler2D palette;
@@ -131,9 +132,10 @@ varying float v_light;
 varying vec2 v_lightInfo;
 varying float v_lightType;
 
-const float invTextureSize = 1.0 / 1024;
+const float invTextureSize = 1.0 / 1024.0;
 
 vec3 lookupColour(float col, float light);
+vec4 sampleTex(vec2 tOffset, vec2 tUV, vec2 tSize, sampler2D atlas);
 
 void main() {
   float light = 1.0 - v_light;
@@ -142,7 +144,7 @@ void main() {
   }
   light *= v_lightType;
   vec2 offset = mod(v_texInfo.xy, v_texInfo.zw);
-  float col = texture2D(texture, (v_tex.xy + offset) * invTextureSize).r;
+  float col = textureLod(texture, (v_tex.xy + offset) * invTextureSize, 4.0 - gl_FragCoord.w * 3000.0).r;
   gl_FragColor = vec4(lookupColour(col, light), 1.0);
 }
 

@@ -8,7 +8,7 @@ type textureAltas struct {
 	width, height int
 	buffer        []byte
 	root          []*atlasPart
-	padded        bool
+	padding        int
 	baked         bool
 }
 
@@ -24,11 +24,11 @@ type atlasTexture struct {
 	width, height int
 }
 
-func newAtlas(width, height int, padded bool) *textureAltas {
+func newAtlas(width, height int, padding int) *textureAltas {
 	a := &textureAltas{
 		width:  width,
 		height: height,
-		padded: padded,
+		padding: padding,
 		buffer: make([]byte, width*height),
 	}
 	a.root = append(a.root, &atlasPart{
@@ -45,12 +45,8 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 		panic("invalid state, atlas is baked")
 	}
 
-	w := picture.Width
-	h := picture.Height
-	if a.padded {
-		w += 2
-		h += 2
-	}
+	w := picture.Width + (a.padding << 1)
+	h := picture.Height + (a.padding << 1)
 
 	var p *atlasPart
 	p, a.root = findFree(a.root, w, h)
@@ -59,30 +55,10 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 		panic("atlas full")
 	}
 
-	targetX := p.x
-	targetY := p.y
+	copyImage(picture.Data, a.buffer, p.x, p.y, w, h, a.width, a.height, a.padding)
 
-	/*data := picture.Data
-	for y := 0; y < h; y++ {
-		index := (targetY+y)*a.width + targetX
-		for x := 0; x < w; x++ {
-			px := x
-			py := y
-			if a.padded {
-				px--
-				py--
-			}
-			a.buffer[index+x] = safeGetPixel(data, px, py, picture.Width, picture.Height)
-		}
-	}*/
-	copyImage(picture.Data, a.buffer, targetX, targetY, w, h, a.width, a.height, a.padded)
-
-	tx := targetX
-	ty := targetY
-	if a.padded {
-		tx++
-		ty++
-	}
+	tx := p.x + a.padding
+	ty := p.y + a.padding
 
 	return &atlasTexture{
 		x:      tx,
@@ -113,20 +89,14 @@ func safeGetPixel(data []byte, x, y, w, h int) byte {
 	return data[y*w+x]
 }
 
-func copyImage(data, buffer []byte, targetX, targetY, w, h, width, height int, padded bool) {
+func copyImage(data, buffer []byte, targetX, targetY, w, h, width, height int, padding int) {
 	for y := 0; y < h; y++ {
 		index := (targetY+y)*width + targetX
 		for x := 0; x < w; x++ {
-			px := x
-			py := y
-			pw := w
-			ph := h
-			if padded {
-				px--
-				py--
-				pw -= 2
-				ph -= 2
-			}
+			px := x - padding
+			py := y - padding
+			pw := w - (padding << 1)
+			ph := h - (padding << 1)
 			buffer[index+x] = safeGetPixel(data, px, py, pw, ph)
 		}
 	}

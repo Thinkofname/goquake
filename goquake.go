@@ -24,8 +24,10 @@ func main() {
 	}
 	defer glfw.Terminate()
 
-	glfw.WindowHint(glfw.ContextVersionMajor, 2)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+	glfw.WindowHint(glfw.ContextVersionMajor, 3)
+	glfw.WindowHint(glfw.ContextVersionMinor, 2)
+	glfw.WindowHint(glfw.OpenglProfile, glfw.OpenglCompatProfile)
+	glfw.WindowHint(glfw.OpenglForwardCompatible, glfw.True)
 
 	window, err := glfw.CreateWindow(640, 480, "GoQuake", nil, nil)
 	if err != nil {
