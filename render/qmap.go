@@ -23,16 +23,20 @@ type qMap struct {
 	lightAtlas  *textureAltas
 	textures    []*atlasTexture
 
-	mapBuffer    gl.Buffer
-	count        int
-	stride       int
-	skyBuffer    gl.Buffer
-	skyBoxBuffer gl.Buffer
-	skyCount     int
-	skyBoxCount  int
-	skyTexture   int
-	skyMin       vmath.Vector3
-	skyMax       vmath.Vector3
+	mapVertexArray gl.VertexArray
+	mapBuffer      gl.Buffer
+	count          int
+	stride         int
+
+	skyVertexArray    gl.VertexArray
+	skyBuffer         gl.Buffer
+	skyBoxVertexArray gl.VertexArray
+	skyBoxBuffer      gl.Buffer
+	skyCount          int
+	skyBoxCount       int
+	skyTexture        int
+	skyMin            vmath.Vector3
+	skyMax            vmath.Vector3
 }
 
 var (
@@ -334,15 +338,21 @@ func newQMap(b *bsp.File) *qMap {
 
 	m.lightAtlas.bake()
 
+	m.mapVertexArray = gl.CreateVertexArray()
+	m.mapVertexArray.Bind()
 	m.mapBuffer = gl.CreateBuffer()
 	m.mapBuffer.Bind(gl.ArrayBuffer)
 	m.mapBuffer.Data(bufferNormal.Data(), gl.StaticDraw)
 	m.count = bufferNormal.Count()
+	gameShader.setupPointers(m.stride)
 
+	m.skyVertexArray = gl.CreateVertexArray()
+	m.skyVertexArray.Bind()
 	m.skyBuffer = gl.CreateBuffer()
 	m.skyBuffer.Bind(gl.ArrayBuffer)
 	m.skyBuffer.Data(bufferSky.Data(), gl.StaticDraw)
 	m.skyCount = bufferSky.Count()
+	gameSkyShader.setupPointers(m.stride)
 
 	m.skyMax.X += 2000
 	m.skyMax.Y += 2000
@@ -351,21 +361,24 @@ func newQMap(b *bsp.File) *qMap {
 	skyBox := builder.New(vertexTypes...)
 	m.buildSkyBox(skyBox)
 
+	m.skyBoxVertexArray = gl.CreateVertexArray()
+	m.skyBoxVertexArray.Bind()
 	m.skyBoxBuffer = gl.CreateBuffer()
 	m.skyBoxBuffer.Bind(gl.ArrayBuffer)
 	m.skyBoxBuffer.Data(skyBox.Data(), gl.StaticDraw)
 	m.skyBoxCount = skyBox.Count()
+	gameSkyShader.setupPointers(m.stride)
 
 	texture.Bind(gl.Texture2D)
-	texture.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, m.atlas.buffer)
+	texture.Image2D(0, gl.Red, atlasSize, atlasSize, gl.Red, gl.UnsignedByte, m.atlas.buffer)
 
 	for j := 0; j < 3; j++ {
 		size := atlasSize >> uint(j+1)
-		texture.Image2D(1+j, gl.Luminance, size, size, gl.Luminance, gl.UnsignedByte, m.mipTextures[j])
+		texture.Image2D(1+j, gl.Red, size, size, gl.Red, gl.UnsignedByte, m.mipTextures[j])
 	}
 
 	textureLight.Bind(gl.Texture2D)
-	textureLight.Image2D(0, gl.Luminance, atlasSize, atlasSize, gl.Luminance, gl.UnsignedByte, m.lightAtlas.buffer)
+	textureLight.Image2D(0, gl.Red, atlasSize, atlasSize, gl.Red, gl.UnsignedByte, m.lightAtlas.buffer)
 
 	return m
 }
@@ -379,11 +392,10 @@ func (m *qMap) render() {
 	gl.StencilOp(gl.Replace, gl.Keep, gl.Keep)
 
 	gameSkyShader.bind()
-	m.skyBuffer.Bind(gl.ArrayBuffer)
+	m.skyVertexArray.Bind()
 
 	gameSkyShader.TimeOffset.Float(-1)
 
-	gameSkyShader.setupPointers(m.stride)
 	gl.DrawArrays(gl.Triangles, 0, m.skyCount)
 	gameSkyShader.unbind()
 
@@ -391,15 +403,12 @@ func (m *qMap) render() {
 	gl.StencilMask(0x00)
 	gl.StencilFunc(gl.Equal, 1, 0xFF)
 
-	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
-	gl.Clear(gl.ColorBufferBit)
 	gameSkyShader.bind()
-	m.skyBoxBuffer.Bind(gl.ArrayBuffer)
+	m.skyBoxVertexArray.Bind()
 
 	t := time.Second * 30
 	gameSkyShader.TimeOffset.Float(float32(time.Now().UnixNano()%int64(t*2)) / float32(t))
 
-	gameSkyShader.setupPointers(m.stride)
 	gl.DrawArrays(gl.Triangles, 0, m.skyBoxCount)
 	gameSkyShader.unbind()
 
@@ -407,9 +416,8 @@ func (m *qMap) render() {
 	///
 
 	gameShader.bind()
-	m.mapBuffer.Bind(gl.ArrayBuffer)
+	m.mapVertexArray.Bind()
 
-	gameShader.setupPointers(m.stride)
 	gl.DrawArrays(gl.Triangles, 0, m.count)
 	gameShader.unbind()
 }

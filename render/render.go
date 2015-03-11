@@ -53,7 +53,7 @@ func Init(p pak.File, initialMap *bsp.File) {
 	colourMap = createTexture(glTexture{
 		Data:  cm,
 		Width: 256, Height: 64,
-		Format: gl.Luminance,
+		Format: gl.Red,
 	})
 
 	pm, _ := ioutil.ReadAll(pakFile.Reader("gfx/palette.lmp"))
@@ -68,7 +68,7 @@ func Init(p pak.File, initialMap *bsp.File) {
 	texture = createTexture(glTexture{
 		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
-		Format: gl.Luminance,
+		Format: gl.Red,
 		Filter: gl.Nearest,
 		MinFilter: gl.NearestMipmapNearest,
 	})
@@ -77,7 +77,7 @@ func Init(p pak.File, initialMap *bsp.File) {
 	textureLight = createTexture(glTexture{
 		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
-		Format: gl.Luminance,
+		Format: gl.Red,
 		Filter: gl.Linear,
 	})
 
@@ -85,6 +85,12 @@ func Init(p pak.File, initialMap *bsp.File) {
 	gameSkyShader = initSkyShader()
 
 	currentMap = newQMap(initialMap)
+	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
+
+	gl.Enable(gl.DepthTest)
+	gl.Enable(gl.CullFaceFlag)
+	gl.CullFace(gl.Back)
+	gl.FrontFace(gl.CounterClockWise)
 }
 
 var lastFrame = time.Now()
@@ -105,10 +111,9 @@ func Draw(width, height int) {
 			0.1,
 			10000.0,
 		)
-	}
 
-	gl.Viewport(0, 0, width, height)
-	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
+		gl.Viewport(0, 0, width, height)
+	}
 	gl.Clear(gl.ColorBufferBit | gl.DepthBufferBit)
 
 	if movingForward {
@@ -124,15 +129,7 @@ func Draw(width, height int) {
 
 	// Setup and render
 
-	gl.Enable(gl.DepthTest)
-	gl.Enable(gl.CullFaceFlag)
-	gl.CullFace(gl.Back)
-	gl.FrontFace(gl.CounterClockWise)
-
 	currentMap.render()
-
-	gl.Disable(gl.CullFaceFlag)
-	gl.Disable(gl.DepthTest)
 }
 
 func MoveForward() {

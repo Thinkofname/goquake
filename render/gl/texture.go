@@ -1,14 +1,14 @@
 package gl
 
 import (
-	"github.com/go-gl/gl/v3.2-compatibility/gl"
+	"github.com/go-gl/gl/v3.2-core/gl"
 )
 
 const (
 	Texture2D TextureTarget = gl.TEXTURE_2D
 
-	Luminance TextureFormat = gl.LUMINANCE
-	RGB       TextureFormat = gl.RGB
+	Red TextureFormat = gl.RED
+	RGB TextureFormat = gl.RGB
 
 	TextureMinFilter TextureParameter = gl.TEXTURE_MIN_FILTER
 	TextureMagFilter TextureParameter = gl.TEXTURE_MAG_FILTER

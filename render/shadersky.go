@@ -52,16 +52,16 @@ func (m *skyShader) bind() {
 	gl.ActiveTexture(3)
 	textureLight.Bind(gl.Texture2D)
 	m.TextureLight.Int(3)
+}
 
+func (m *skyShader) setupPointers(stride int) {
 	m.Position.Enable()
 	m.Light.Enable()
 	m.TexturePos.Enable()
 	m.TextureInfo.Enable()
 	m.LightInfo.Enable()
 	m.LightType.Enable()
-}
 
-func (m *skyShader) setupPointers(stride int) {
 	m.Position.Pointer(3, gl.Float, false, stride, 0)
 	m.TexturePos.Pointer(2, gl.UnsignedShort, false, stride, 4*3)
 	m.TextureInfo.Pointer(4, gl.Short, false, stride, 4*3+2*2)
@@ -71,33 +71,36 @@ func (m *skyShader) setupPointers(stride int) {
 }
 
 func (m *skyShader) unbind() {
+	/*
 	m.Position.Disable()
 	m.Light.Disable()
 	m.TexturePos.Disable()
 	m.TextureInfo.Disable()
 	m.LightInfo.Disable()
 	m.LightType.Disable()
+	*/
 }
 
 const (
 	skyVertexSource = `
-attribute vec3 a_position;
-attribute float a_light;
-attribute vec2 a_tex;
-attribute vec4 a_texInfo;
-attribute vec2 a_lightInfo;
-attribute float a_lightType;
+#version 130
+in vec3 a_position;
+in float a_light;
+in vec2 a_tex;
+in vec4 a_texInfo;
+in vec2 a_lightInfo;
+in float a_lightType;
 
 uniform mat4 pMat;
 uniform mat4 uMat;
 uniform float lightStyles[11];
 
-varying vec2 v_tex;
-varying vec4 v_texInfo;
-varying float v_light;
-varying vec2 v_lightInfo;
-varying vec2 v_pos;
-varying float v_lightType;
+out vec2 v_tex;
+out vec4 v_texInfo;
+out float v_light;
+out vec2 v_lightInfo;
+out vec2 v_pos;
+out float v_lightType;
 
 const float invTextureSize = 1.0 / 1024.0;
 const float invPackSize = 1.0;
@@ -113,6 +116,7 @@ void main() {
 }
 `
 	skyFragmentSource = `
+#version 130
 precision mediump float;
 
 uniform sampler2D palette;
@@ -123,12 +127,14 @@ uniform float timeOffset;
 uniform mat4 pMat;
 uniform mat4 uMat;
 
-varying vec2 v_pos;
-varying vec2 v_tex;
-varying vec4 v_texInfo;
-varying float v_light;
-varying vec2 v_lightInfo;
-varying float v_lightType;
+in vec2 v_pos;
+in vec2 v_tex;
+in vec4 v_texInfo;
+in float v_light;
+in vec2 v_lightInfo;
+in float v_lightType;
+
+out vec4 fragColor;
 
 const float invTextureSize = 1.0 / 1024.0;
 
@@ -138,7 +144,7 @@ void main() {
   float light = 0.5;
   vec2 offset = mod(v_pos * 1024.0 + timeOffset * v_texInfo.z * (2.0 - v_lightType), v_texInfo.zw);
   float col = textureLod(texture, (v_tex.xy + offset) * invTextureSize, 4.0 - gl_FragCoord.w * 3000.0).r;
-  gl_FragColor = vec4(lookupColour(col, light), 1.0);
+  fragColor = vec4(lookupColour(col, light), 1.0);
 }
 
 vec3 lookupColour(float col, float light) {

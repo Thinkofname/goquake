@@ -1,7 +1,7 @@
 package gl
 
 import (
-	"github.com/go-gl/gl/v3.2-compatibility/gl"
+	"github.com/go-gl/gl/v3.2-core/gl"
 	"github.com/thinkofdeath/goquake/vmath"
 	"unsafe"
 )
