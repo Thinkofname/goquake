@@ -384,42 +384,70 @@ func newQMap(b *bsp.File) *qMap {
 }
 
 func (m *qMap) render() {
+	// The level is actually rendered twice once for
+	// the stencil buffer and then again for the screen
+	// buffer. The reason for this is to allow for Quake's
+	// sky box to work correctly. Instead of being visible
+	// from any open area in the level the sky box can
+	// only been see if see through a 'sky' quad and is
+	// otherwise hidden. To replicate this we use the stencil
+	// buffer to mark out the visible sky quads and then
+	// only render the sky to that area and the rest of the
+	// level to the inverted selection
+
+	// Setup the stencil buffer
 	gl.Enable(gl.StencilTest)
 	gl.ColorMask(false, false, false, false)
 	gl.StencilMask(0xFF)
 	gl.Clear(gl.StencilBufferBit)
-	gl.StencilFunc(gl.Never, 1, 0xFF)
-	gl.StencilOp(gl.Replace, gl.Keep, gl.Keep)
+	gl.StencilOp(gl.Keep, gl.Keep, gl.Replace)
 
+	// Hacky but -1 for time offset just fills a single
+	// color.
+	// TODO(Think) Separate shader?
 	gameSkyShader.bind()
-	m.skyVertexArray.Bind()
-
 	gameSkyShader.TimeOffset.Float(-1)
 
-	gl.DrawArrays(gl.Triangles, 0, m.skyCount)
-	gameSkyShader.unbind()
+	// We only want the depth information
+	gl.StencilMask(0x00)
+	m.mapVertexArray.Bind()
+	gl.DrawArrays(gl.Triangles, 0, m.count)
+	gl.StencilMask(0xFF)
 
+	// Fill the stencil buffer with the location of the sky
+	// quads
+	gl.StencilFunc(gl.Always, 1, 0xFF)
+	m.skyVertexArray.Bind()
+	gl.DrawArrays(gl.Triangles, 0, m.skyCount)
+
+	// Disable stencil writing and re-enable
+	// color writing
 	gl.ColorMask(true, true, true, true)
 	gl.StencilMask(0x00)
+	// Only target the sky quads
 	gl.StencilFunc(gl.Equal, 1, 0xFF)
+	// Remove the previous depth information ready
+	// for the actual render
+	gl.Clear(gl.DepthBufferBit)
 
-	gameSkyShader.bind()
+	m.skyVertexArray.Bind()
+
+	// Draw the two sky planes
 	m.skyBoxVertexArray.Bind()
-
 	t := time.Second * 30
 	gameSkyShader.TimeOffset.Float(float32(time.Now().UnixNano()%int64(t*2)) / float32(t))
-
 	gl.DrawArrays(gl.Triangles, 0, m.skyBoxCount)
 	gameSkyShader.unbind()
 
-	gl.Disable(gl.StencilTest)
-	///
-
+	// Draw the rest of the level to the non-sky quads
+	// areas
+	gl.StencilFunc(gl.Equal, 0, 0xFF)
 	gameShader.bind()
 	m.mapVertexArray.Bind()
-
 	gl.DrawArrays(gl.Triangles, 0, m.count)
 	gameShader.unbind()
+
+	gl.Disable(gl.StencilTest)
 }
 
 func (m *qMap) cleanup() {

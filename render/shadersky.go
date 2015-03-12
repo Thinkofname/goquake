@@ -141,6 +141,10 @@ const float invTextureSize = 1.0 / 1024.0;
 vec3 lookupColour(float col, float light);
 
 void main() {
+  if (timeOffset < 0.0) {
+    fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    return;
+  }
   float light = 0.5;
   vec2 offset = mod(v_pos * 1024.0 + timeOffset * v_texInfo.z * (2.0 - v_lightType), v_texInfo.zw);
   float col = textureLod(texture, (v_tex.xy + offset) * invTextureSize, 4.0 - gl_FragCoord.w * 3000.0).r;
@@ -150,7 +154,7 @@ void main() {
 vec3 lookupColour(float col, float light) {
   float index = texture2D(colourMap, vec2(col, light)).r;
   index = floor(index * 255.0 + 0.5);
-  if (timeOffset >= 0.0 && index < 1.0) discard;
+  if (index < 1.0) discard;
   float x = floor(mod(index, 16.0)) / 16.0;
   float y = floor(index / 16.0) / 16.0;
   return texture2D(palette, vec2(x, y)).rgb;

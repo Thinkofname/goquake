@@ -23,12 +23,16 @@ const (
 
 	Triangles DrawType = gl.TRIANGLES
 
-	Never Func = gl.NEVER
-	Equal Func = gl.EQUAL
+	Never       Func = gl.NEVER
+	Less        Func = gl.LESS
+	LessOrEqual Func = gl.LEQUAL
+	Greater     Func = gl.GREATER
+	Always      Func = gl.ALWAYS
+	Equal       Func = gl.EQUAL
 
 	Replace Op = gl.REPLACE
-
-	Keep Action = gl.KEEP
+	Keep    Op = gl.KEEP
+	Zero    Op = gl.ZERO
 )
 
 func Init() {
@@ -45,7 +49,6 @@ type (
 	DrawType      uint32
 	Func          uint32
 	Op            uint32
-	Action        uint32
 )
 
 func Viewport(x, y, width, height int) {
@@ -111,7 +114,7 @@ func StencilMask(mask int) {
 	gl.StencilMask(uint32(mask))
 }
 
-func StencilOp(op Op, fail, pass Action) {
+func StencilOp(op, fail, pass Op) {
 	gl.StencilOp(uint32(op), uint32(fail), uint32(pass))
 }
 
