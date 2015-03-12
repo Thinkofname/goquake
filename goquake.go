@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/go-gl/glfw/v3.0/glfw"
-	"github.com/thinkofdeath/goquake/bsp"
 	"github.com/thinkofdeath/goquake/pak"
 	"github.com/thinkofdeath/goquake/render"
 	"runtime"
@@ -51,12 +50,8 @@ func main() {
 	}
 
 	defer p.Close()
-	bsp, err := bsp.ParseBSPFile(p.Reader("maps/start.bsp"))
-	if err != nil {
-		panic(err)
-	}
 
-	render.Init(p, bsp)
+	render.Init(p)
 
 	fmt.Println(time.Now().Sub(start))
 
@@ -85,6 +80,8 @@ func onKey(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods 
 	} else if key == glfw.KeyEscape {
 		lockMouse = false
 		w.SetInputMode(glfw.Cursor, glfw.CursorNormal)
+	} else if key == glfw.Key1 && action == glfw.Release {
+		render.SetLevel("e1m1")
 	}
 }
 

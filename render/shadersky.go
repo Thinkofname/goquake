@@ -71,14 +71,6 @@ func (m *skyShader) setupPointers(stride int) {
 }
 
 func (m *skyShader) unbind() {
-	/*
-	m.Position.Disable()
-	m.Light.Disable()
-	m.TexturePos.Disable()
-	m.TextureInfo.Disable()
-	m.LightInfo.Disable()
-	m.LightType.Disable()
-	*/
 }
 
 const (

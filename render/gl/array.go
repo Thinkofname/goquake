@@ -23,3 +23,10 @@ func (va VertexArray) Bind() {
 	gl.BindVertexArray(va.internal)
 	currentVertexArray = va
 }
+
+func (va VertexArray) Delete() {
+	gl.DeleteVertexArrays(1, &va.internal)
+	if currentVertexArray == va {
+		currentVertexArray = VertexArray{}
+	}
+}

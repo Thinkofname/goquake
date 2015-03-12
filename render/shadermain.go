@@ -71,14 +71,6 @@ func (m *mainShader) setupPointers(stride int) {
 }
 
 func (m *mainShader) unbind() {
-	/*
-	m.Position.Disable()
-	m.Light.Disable()
-	m.TexturePos.Disable()
-	m.TextureInfo.Disable()
-	m.LightInfo.Disable()
-	m.LightType.Disable()
-	*/
 }
 
 const (

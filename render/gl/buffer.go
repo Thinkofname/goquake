@@ -60,4 +60,7 @@ func (b Buffer) DataFloat32(data []float32, usage BufferUsage) {
 
 func (b Buffer) Delete() {
 	gl.DeleteBuffers(1, &b.internal)
+	if currentBuffer == b {
+		currentBuffer = Buffer{}
+	}
 }

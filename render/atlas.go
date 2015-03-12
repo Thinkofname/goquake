@@ -8,7 +8,7 @@ type textureAltas struct {
 	width, height int
 	buffer        []byte
 	root          []*atlasPart
-	padding        int
+	padding       int
 	baked         bool
 }
 
@@ -26,10 +26,10 @@ type atlasTexture struct {
 
 func newAtlas(width, height int, padding int) *textureAltas {
 	a := &textureAltas{
-		width:  width,
-		height: height,
+		width:   width,
+		height:  height,
 		padding: padding,
-		buffer: make([]byte, width*height),
+		buffer:  make([]byte, width*height),
 	}
 	a.root = append(a.root, &atlasPart{
 		x:      0,
@@ -52,6 +52,7 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 	p, a.root = findFree(a.root, w, h)
 
 	if p == nil {
+		dumpTexture(a.buffer, a.width, a.height, pakFile, "full.png")
 		panic("atlas full")
 	}
 

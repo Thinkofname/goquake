@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -66,8 +67,10 @@ func init() {
 
 func newQMap(b *bsp.File) *qMap {
 	m := &qMap{
-		bsp:        b,
-		atlas:      newAtlas(atlasSize, atlasSize, 0),
+		bsp:   b,
+		atlas: newAtlas(atlasSize, atlasSize, 0),
+		// Pad the light buffer to fix issues with smoothing
+		// the texture
 		lightAtlas: newAtlas(atlasSize, atlasSize, 1),
 		skyTexture: -1,
 		textures:   make([]*atlasTexture, len(b.Textures)),
@@ -78,24 +81,34 @@ func newQMap(b *bsp.File) *qMap {
 		m.mipTextures[j] = make([]byte, size*size)
 	}
 
+	var tList []ti
+
 	for i, texture := range b.Textures {
 		if texture == nil {
 			continue
 		}
-		tx := m.atlas.addPicture(texture.Pictures[0])
-		m.textures[i] = tx
+
+		tList = append(tList, ti{i, texture})
+	}
+
+	sort.Sort(tiSorter(tList))
+
+	for _, t := range tList {
+		tx := m.atlas.addPicture(t.texture.Pictures[0])
+		m.textures[t.id] = tx
+
+		// Mipmaps
 		for j := 0; j < 3; j++ {
 			size := atlasSize >> uint(j+1)
-			p := 0 // 8 >> uint(j + 1)
 			copyImage(
-				texture.Pictures[1+j].Data,
+				t.texture.Pictures[1+j].Data,
 				m.mipTextures[j],
-				tx.x>>uint(j+1)-p,
-				tx.y>>uint(j+1)-p,
-				tx.width>>uint(j+1)+(p<<1),
-				tx.height>>uint(j+1)+(p<<1),
+				tx.x>>uint(j+1),
+				tx.y>>uint(j+1),
+				tx.width>>uint(j+1),
+				tx.height>>uint(j+1),
 				size, size,
-				p,
+				0,
 			)
 		}
 	}
@@ -106,9 +119,76 @@ func newQMap(b *bsp.File) *qMap {
 	bufferSky := builder.New(vertexTypes...)
 	m.stride = bufferNormal.ElementSize()
 
+	var lList []li
+
+	// Search for light textures
+	for _, model := range b.Models {
+		for _, face := range model.Faces {
+			if face.TextureInfo.Texture == nil || face.TextureInfo.Texture.Name == "trigger" {
+				continue
+			}
+			if face.LightMap == -1 || face.TypeLight == 0xFF{
+				continue
+			}
+
+			minS := float32(math.Inf(1))
+			minT := float32(math.Inf(1))
+			maxS := float32(math.Inf(-1))
+			maxT := float32(math.Inf(-1))
+
+			tInfo := face.TextureInfo
+			for _, l := range face.Ledges {
+				var vert *vmath.Vector3
+				if l < 0 {
+					vert = b.Edges[-l].Vertex1
+				} else {
+					vert = b.Edges[l].Vertex0
+				}
+
+				valS := vert.Dot(tInfo.VectorS) + tInfo.DistS
+				valT := vert.Dot(tInfo.VectorT) + tInfo.DistT
+
+				if minS > valS {
+					minS = valS
+				}
+				if maxS < valS {
+					maxS = valS
+				}
+				if minT > valT {
+					minT = valT
+				}
+				if maxT < valT {
+					maxT = valT
+				}
+			}
+
+			lightS := float32(math.Floor(float64(minS / 16)))
+			lightT := float32(math.Floor(float64(minT / 16)))
+			lightSM := float32(math.Ceil(float64(maxS / 16)))
+			lightTM := float32(math.Ceil(float64(maxT / 16)))
+
+			width := (lightSM - lightS) + 1.0
+			height := (lightTM - lightT) + 1.0
+
+			lList = append(lList, li{
+				int(face.LightMap),
+				&bsp.Picture{
+					Width:  int(width),
+					Height: int(height),
+					Data:   b.LightMaps[face.LightMap:],
+				},
+			})
+		}
+	}
+	sort.Sort(liSorter(lList))
+	lights := map[int32]*atlasTexture{}
+	for _, l := range lList {
+		lights[int32(l.id)] = m.lightAtlas.addPicture(l.pic)
+	}
+
+
 	// Build the world
 	for _, model := range b.Models {
-		model := model
 		for _, face := range model.Faces {
 			if face.TextureInfo.Texture == nil || face.TextureInfo.Texture.Name == "trigger" {
 				continue
@@ -162,8 +242,6 @@ func newQMap(b *bsp.File) *qMap {
 			tOffsetX := float32(0)
 			tOffsetY := float32(0)
 			var lightS, lightT float32
-			var lightSM, lightTM float32
-			var width, height float32
 
 			if face.TypeLight != 0xFF && face.LightMap != -1 {
 				minS := float32(math.Inf(1))
@@ -199,18 +277,8 @@ func newQMap(b *bsp.File) *qMap {
 
 				lightS = float32(math.Floor(float64(minS / 16)))
 				lightT = float32(math.Floor(float64(minT / 16)))
-				lightSM = float32(math.Ceil(float64(maxS / 16)))
-				lightTM = float32(math.Ceil(float64(maxT / 16)))
 
-				width = (lightSM - lightS) + 1.0
-				height = (lightTM - lightT) + 1.0
-
-				pic := &bsp.Picture{
-					Width:  int(width),
-					Height: int(height),
-					Data:   b.LightMaps[face.LightMap:],
-				}
-				tex := m.lightAtlas.addPicture(pic)
+				tex := lights[face.LightMap]
 				tOffsetX = float32(tex.x)
 				tOffsetY = float32(tex.y)
 			}
@@ -337,6 +405,8 @@ func newQMap(b *bsp.File) *qMap {
 	}
 
 	m.lightAtlas.bake()
+	dumpTexture(m.lightAtlas.buffer, m.lightAtlas.width, m.lightAtlas.height, pakFile, "light.png")
+	dumpTexture(m.atlas.buffer, m.atlas.width, m.atlas.height, pakFile, "texture.png")
 
 	m.mapVertexArray = gl.CreateVertexArray()
 	m.mapVertexArray.Bind()
@@ -354,6 +424,7 @@ func newQMap(b *bsp.File) *qMap {
 	m.skyCount = bufferSky.Count()
 	gameSkyShader.setupPointers(m.stride)
 
+	// Stretch the sky box slightly bigger than the level
 	m.skyMax.X += 2000
 	m.skyMax.Y += 2000
 	m.skyMin.X -= 2000
@@ -451,6 +522,9 @@ func (m *qMap) render() {
 }
 
 func (m *qMap) cleanup() {
+	m.mapVertexArray.Delete()
+	m.skyBoxVertexArray.Delete()
+	m.skyVertexArray.Delete()
 	m.mapBuffer.Delete()
 	m.skyBoxBuffer.Delete()
 	m.skyBuffer.Delete()

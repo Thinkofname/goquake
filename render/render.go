@@ -1,6 +1,7 @@
 package render
 
 import (
+	"fmt"
 	"github.com/thinkofdeath/goquake/bsp"
 	"github.com/thinkofdeath/goquake/pak"
 	"github.com/thinkofdeath/goquake/render/gl"
@@ -32,7 +33,7 @@ var (
 	texture      gl.Texture
 	textureLight gl.Texture
 
-	gameShader *mainShader
+	gameShader    *mainShader
 	gameSkyShader *skyShader
 
 	cameraX       float64 = 504
@@ -43,7 +44,7 @@ var (
 	movingForward bool
 )
 
-func Init(p pak.File, initialMap *bsp.File) {
+func Init(p pak.File) {
 	gl.Init()
 
 	pakFile = p
@@ -68,8 +69,8 @@ func Init(p pak.File, initialMap *bsp.File) {
 	texture = createTexture(glTexture{
 		Data:  dummy,
 		Width: atlasSize, Height: atlasSize,
-		Format: gl.Red,
-		Filter: gl.Nearest,
+		Format:    gl.Red,
+		Filter:    gl.Nearest,
 		MinFilter: gl.NearestMipmapNearest,
 	})
 	texture.Parameter(gl.TextureMaxLevel, 3)
@@ -83,6 +84,11 @@ func Init(p pak.File, initialMap *bsp.File) {
 
 	gameShader = initMainShader()
 	gameSkyShader = initSkyShader()
+
+	initialMap, err := bsp.ParseBSPFile(p.Reader("maps/start.bsp"))
+	if err != nil {
+		panic(err)
+	}
 
 	currentMap = newQMap(initialMap)
 	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
@@ -143,4 +149,16 @@ func StopMove() {
 func Rotate(x, y float64) {
 	cameraRotX += y
 	cameraRotY += x
+}
+
+func SetLevel(name string) {
+	start := time.Now()
+	currentMap.cleanup()
+	m, err := bsp.ParseBSPFile(pakFile.Reader("maps/" + name + ".bsp"))
+	if err != nil {
+		panic(err)
+	}
+
+	currentMap = newQMap(m)
+	fmt.Println(time.Now().Sub(start))
 }
