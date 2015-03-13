@@ -3,6 +3,7 @@ package render
 import (
 	"github.com/thinkofdeath/goquake/bsp"
 	"github.com/thinkofdeath/goquake/pak"
+	"github.com/thinkofdeath/goquake/render/atlas"
 	"github.com/thinkofdeath/goquake/render/builder"
 	"github.com/thinkofdeath/goquake/render/gl"
 	"github.com/thinkofdeath/goquake/vmath"
@@ -19,10 +20,10 @@ import (
 type qMap struct {
 	bsp *bsp.File
 
-	atlas       *textureAltas
+	atlas       *atlas.Type
 	mipTextures [3][]byte
-	lightAtlas  *textureAltas
-	textures    []*atlasTexture
+	lightAtlas  *atlas.Type
+	textures    []*atlas.Rect
 
 	mapVertexArray gl.VertexArray
 	mapBuffer      gl.Buffer
@@ -68,12 +69,12 @@ func init() {
 func newQMap(b *bsp.File) *qMap {
 	m := &qMap{
 		bsp:   b,
-		atlas: newAtlas(atlasSize, atlasSize, 0),
+		atlas: atlas.New(atlasSize, atlasSize),
 		// Pad the light buffer to fix issues with smoothing
 		// the texture
-		lightAtlas: newAtlas(atlasSize, atlasSize, 1),
+		lightAtlas: atlas.NewPadded(atlasSize, atlasSize, 1),
 		skyTexture: -1,
-		textures:   make([]*atlasTexture, len(b.Textures)),
+		textures:   make([]*atlas.Rect, len(b.Textures)),
 	}
 
 	// Allocate mipmaps
@@ -95,25 +96,25 @@ func newQMap(b *bsp.File) *qMap {
 
 	// Add all textures to the atlas
 	for _, t := range tList {
-		tx := m.atlas.addPicture(t.texture.Pictures[0])
+		tx := m.atlas.Add(t.texture.Pictures[0])
 		m.textures[t.id] = tx
 
 		// Mipmaps
 		for j := 0; j < 3; j++ {
 			size := atlasSize >> uint(j+1)
-			copyImage(
+			atlas.CopyImage(
 				t.texture.Pictures[1+j].Data,
 				m.mipTextures[j],
-				tx.x>>uint(j+1),
-				tx.y>>uint(j+1),
-				tx.width>>uint(j+1),
-				tx.height>>uint(j+1),
+				tx.X>>uint(j+1),
+				tx.Y>>uint(j+1),
+				tx.Width>>uint(j+1),
+				tx.Height>>uint(j+1),
 				size, size,
 				0,
 			)
 		}
 	}
-	m.atlas.bake()
+	m.atlas.Bake()
 
 	bufferNormal := builder.New(vertexTypes...)
 	bufferSky := builder.New(vertexTypes...)
@@ -182,9 +183,9 @@ func newQMap(b *bsp.File) *qMap {
 	}
 	// Add them to an atlas
 	sort.Sort(liSorter(lList))
-	lights := map[int32]*atlasTexture{}
+	lights := map[int32]*atlas.Rect{}
 	for _, l := range lList {
-		lights[int32(l.id)] = m.lightAtlas.addPicture(l.pic)
+		lights[int32(l.id)] = m.lightAtlas.Add(l.pic)
 	}
 
 	// Build the world
@@ -279,8 +280,8 @@ func newQMap(b *bsp.File) *qMap {
 				lightT = math.Floor(minT / 16)
 
 				tex := lights[face.LightMap]
-				tOffsetX = float64(tex.x)
-				tOffsetY = float64(tex.y)
+				tOffsetX = float64(tex.X)
+				tOffsetY = float64(tex.Y)
 			}
 
 			s := face.TextureInfo.VectorS
@@ -336,8 +337,8 @@ func newQMap(b *bsp.File) *qMap {
 					X:              model.Origin.X + float32(av.X),
 					Y:              model.Origin.Y + float32(av.Y),
 					Z:              model.Origin.Z + float32(av.Z),
-					TextureX:       uint16(tex.x),
-					TextureY:       uint16(tex.y),
+					TextureX:       uint16(tex.X),
+					TextureY:       uint16(tex.Y),
 					TextureOffsetX: int16(aS),
 					TextureOffsetY: int16(aT),
 					TextureWidth:   int16(face.TextureInfo.Texture.Width),
@@ -362,8 +363,8 @@ func newQMap(b *bsp.File) *qMap {
 					X:              model.Origin.X + float32(bv.X),
 					Y:              model.Origin.Y + float32(bv.Y),
 					Z:              model.Origin.Z + float32(bv.Z),
-					TextureX:       uint16(tex.x),
-					TextureY:       uint16(tex.y),
+					TextureX:       uint16(tex.X),
+					TextureY:       uint16(tex.Y),
 					TextureOffsetX: int16(bS),
 					TextureOffsetY: int16(bT),
 					TextureWidth:   int16(face.TextureInfo.Texture.Width),
@@ -393,8 +394,8 @@ func newQMap(b *bsp.File) *qMap {
 					X:              model.Origin.X + float32(centerX),
 					Y:              model.Origin.Y + float32(centerY),
 					Z:              model.Origin.Z + float32(centerZ),
-					TextureX:       uint16(tex.x),
-					TextureY:       uint16(tex.y),
+					TextureX:       uint16(tex.X),
+					TextureY:       uint16(tex.Y),
 					TextureOffsetX: int16(centerS),
 					TextureOffsetY: int16(centerT),
 					TextureWidth:   int16(face.TextureInfo.Texture.Width),
@@ -408,7 +409,7 @@ func newQMap(b *bsp.File) *qMap {
 		}
 	}
 
-	m.lightAtlas.bake()
+	m.lightAtlas.Bake()
 
 	m.mapVertexArray = gl.CreateVertexArray()
 	m.mapVertexArray.Bind()
@@ -443,7 +444,7 @@ func newQMap(b *bsp.File) *qMap {
 	gameSkyShader.setupPointers(m.stride)
 
 	texture.Bind(gl.Texture2D)
-	texture.Image2D(0, gl.Red, atlasSize, atlasSize, gl.Red, gl.UnsignedByte, m.atlas.buffer)
+	texture.Image2D(0, gl.Red, atlasSize, atlasSize, gl.Red, gl.UnsignedByte, m.atlas.Buffer)
 
 	for j := 0; j < 3; j++ {
 		size := atlasSize >> uint(j+1)
@@ -451,7 +452,7 @@ func newQMap(b *bsp.File) *qMap {
 	}
 
 	textureLight.Bind(gl.Texture2D)
-	textureLight.Image2D(0, gl.Red, atlasSize, atlasSize, gl.Red, gl.UnsignedByte, m.lightAtlas.buffer)
+	textureLight.Image2D(0, gl.Red, atlasSize, atlasSize, gl.Red, gl.UnsignedByte, m.lightAtlas.Buffer)
 
 	return m
 }
@@ -538,7 +539,7 @@ func (m *qMap) buildSkyBox(b *builder.Buffer) {
 	}
 	tex := m.textures[m.skyTexture]
 
-	w := int16(tex.width / 2)
+	w := int16(tex.Width / 2)
 
 	for z := 0; z < 2; z++ {
 		offset := float32(100 * z)
@@ -546,30 +547,30 @@ func (m *qMap) buildSkyBox(b *builder.Buffer) {
 			X:             m.skyMin.X,
 			Y:             m.skyMin.Y,
 			Z:             m.skyMax.Z + offset,
-			TextureX:      uint16(tex.x + int(w)*z),
-			TextureY:      uint16(tex.y),
+			TextureX:      uint16(tex.X + int(w)*z),
+			TextureY:      uint16(tex.Y),
 			TextureWidth:  w,
-			TextureHeight: int16(tex.height),
+			TextureHeight: int16(tex.Height),
 			LightType:     uint8(z),
 		})
 		vertexSerializer(b, mapVertex{
 			X:             m.skyMin.X,
 			Y:             m.skyMax.Y,
 			Z:             m.skyMax.Z + offset,
-			TextureX:      uint16(tex.x + int(w)*z),
-			TextureY:      uint16(tex.y),
+			TextureX:      uint16(tex.X + int(w)*z),
+			TextureY:      uint16(tex.Y),
 			TextureWidth:  w,
-			TextureHeight: int16(tex.height),
+			TextureHeight: int16(tex.Height),
 			LightType:     uint8(z),
 		})
 		vertexSerializer(b, mapVertex{
 			X:             m.skyMax.X,
 			Y:             m.skyMin.Y,
 			Z:             m.skyMax.Z + offset,
-			TextureX:      uint16(tex.x + int(w)*z),
-			TextureY:      uint16(tex.y),
+			TextureX:      uint16(tex.X + int(w)*z),
+			TextureY:      uint16(tex.Y),
 			TextureWidth:  w,
-			TextureHeight: int16(tex.height),
+			TextureHeight: int16(tex.Height),
 			LightType:     uint8(z),
 		})
 
@@ -577,30 +578,30 @@ func (m *qMap) buildSkyBox(b *builder.Buffer) {
 			X:             m.skyMin.X,
 			Y:             m.skyMax.Y,
 			Z:             m.skyMax.Z + offset,
-			TextureX:      uint16(tex.x + int(w)*z),
-			TextureY:      uint16(tex.y),
+			TextureX:      uint16(tex.X + int(w)*z),
+			TextureY:      uint16(tex.Y),
 			TextureWidth:  w,
-			TextureHeight: int16(tex.height),
+			TextureHeight: int16(tex.Height),
 			LightType:     uint8(z),
 		})
 		vertexSerializer(b, mapVertex{
 			X:             m.skyMax.X,
 			Y:             m.skyMax.Y,
 			Z:             m.skyMax.Z + offset,
-			TextureX:      uint16(tex.x + int(w)*z),
-			TextureY:      uint16(tex.y),
+			TextureX:      uint16(tex.X + int(w)*z),
+			TextureY:      uint16(tex.Y),
 			TextureWidth:  w,
-			TextureHeight: int16(tex.height),
+			TextureHeight: int16(tex.Height),
 			LightType:     uint8(z),
 		})
 		vertexSerializer(b, mapVertex{
 			X:             m.skyMax.X,
 			Y:             m.skyMin.Y,
 			Z:             m.skyMax.Z + offset,
-			TextureX:      uint16(tex.x + int(w)*z),
-			TextureY:      uint16(tex.y),
+			TextureX:      uint16(tex.X + int(w)*z),
+			TextureY:      uint16(tex.Y),
 			TextureWidth:  w,
-			TextureHeight: int16(tex.height),
+			TextureHeight: int16(tex.Height),
 			LightType:     uint8(z),
 		})
 	}
