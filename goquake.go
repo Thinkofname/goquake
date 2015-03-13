@@ -7,6 +7,7 @@ import (
 	"github.com/thinkofdeath/goquake/render"
 	"runtime"
 	"time"
+	"math/rand"
 )
 
 func init() {
@@ -81,7 +82,61 @@ func onKey(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods 
 		lockMouse = false
 		w.SetInputMode(glfw.Cursor, glfw.CursorNormal)
 	} else if key == glfw.Key1 && action == glfw.Release {
-		render.SetLevel("e1m1")
+		levels := []string{
+			"b_bh10",
+			"b_bh100",
+			"b_bh25",
+			"b_shell1",
+			"b_shell0",
+			"b_nail1",
+			"b_nail0",
+			"b_rock1",
+			"b_rock0",
+			"b_batt1",
+			"b_batt0",
+			"b_explob",
+			"start",
+			"e1m1",
+			"e1m2",
+			"e1m3",
+			"e1m4",
+			"e1m5",
+			"e1m6",
+			"e1m7",
+			"e1m8",
+			"b_exbox2",
+			"e2m1",
+			"e2m2",
+			"e2m3",
+			"e2m4",
+			"e2m5",
+			"e2m6",
+			"e2m7",
+			"e3m1",
+			"e3m2",
+			"e3m3",
+			"e3m4",
+			"e3m5",
+			"e3m6",
+			"e3m7",
+			"e4m1",
+			"e4m2",
+			"e4m3",
+			"e4m4",
+			"e4m5",
+			"e4m6",
+			"e4m7",
+			"e4m8",
+			"end",
+			"dm1",
+			"dm2",
+			"dm3",
+			"dm4",
+			"dm5",
+			"dm6",
+		}
+
+		render.SetLevel(levels[rand.Intn(len(levels))])
 	}
 }
 
