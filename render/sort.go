@@ -4,6 +4,8 @@ import (
 	"github.com/thinkofdeath/goquake/bsp"
 )
 
+// Used for sorting textures/lightmaps
+
 type ti struct {
 	id      int
 	texture *bsp.Texture
@@ -16,10 +18,7 @@ func (t tiSorter) Len() int {
 }
 
 func (t tiSorter) Less(i, j int) bool {
-	if t[i].texture.Width == t[j].texture.Width {
-		return t[i].texture.Height > t[j].texture.Height
-	}
-	return t[i].texture.Width > t[j].texture.Width
+	return t[i].texture.Width*t[i].texture.Height > t[j].texture.Width*t[j].texture.Height
 }
 
 func (t tiSorter) Swap(i, j int) {
@@ -38,10 +37,7 @@ func (l liSorter) Len() int {
 }
 
 func (l liSorter) Less(i, j int) bool {
-	if l[i].pic.Width == l[j].pic.Width {
-		return l[i].pic.Height > l[j].pic.Height
-	}
-	return l[i].pic.Width > l[j].pic.Width
+	return l[i].pic.Width*l[i].pic.Height > l[j].pic.Width*l[j].pic.Height
 }
 
 func (l liSorter) Swap(i, j int) {

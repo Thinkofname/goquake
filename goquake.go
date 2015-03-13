@@ -5,9 +5,9 @@ import (
 	"github.com/go-gl/glfw/v3.0/glfw"
 	"github.com/thinkofdeath/goquake/pak"
 	"github.com/thinkofdeath/goquake/render"
+	"math/rand"
 	"runtime"
 	"time"
-	"math/rand"
 )
 
 func init() {

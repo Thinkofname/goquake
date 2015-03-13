@@ -76,7 +76,7 @@ func newQMap(b *bsp.File) *qMap {
 		textures:   make([]*atlasTexture, len(b.Textures)),
 	}
 
-    // Allocate mipmaps
+	// Allocate mipmaps
 	for j := 0; j < 3; j++ {
 		size := atlasSize >> uint(j+1)
 		m.mipTextures[j] = make([]byte, size*size)
@@ -127,7 +127,7 @@ func newQMap(b *bsp.File) *qMap {
 			if face.TextureInfo.Texture == nil || face.TextureInfo.Texture.Name == "trigger" {
 				continue
 			}
-			if face.LightMap == -1 || face.TypeLight == 0xFF{
+			if face.LightMap == -1 || face.TypeLight == 0xFF {
 				continue
 			}
 
@@ -186,7 +186,6 @@ func newQMap(b *bsp.File) *qMap {
 	for _, l := range lList {
 		lights[int32(l.id)] = m.lightAtlas.addPicture(l.pic)
 	}
-
 
 	// Build the world
 	for _, model := range b.Models {
@@ -287,18 +286,7 @@ func newQMap(b *bsp.File) *qMap {
 			s := face.TextureInfo.VectorS
 			t := face.TextureInfo.VectorT
 
-			centerVec := vmath.Vector3{float32(centerX), float32(centerY), float32(centerZ)}
-			centerS := float64(centerVec.Dot(s) + face.TextureInfo.DistS)
-			centerT := float64(centerVec.Dot(t) + face.TextureInfo.DistT)
-
 			tex := m.textures[face.TextureInfo.Texture.ID]
-
-			centerTX := -1.0
-			centerTY := -1.0
-			if face.LightMap != -1 {
-				centerTX = math.Floor(centerS/16) - lightS
-				centerTY = math.Floor(centerT/16) - lightT
-			}
 
 			for _, l := range face.Ledges {
 				var av, bv *vmath.Vector3
@@ -385,6 +373,21 @@ func newQMap(b *bsp.File) *qMap {
 					Light:          light,
 					LightType:      face.TypeLight,
 				})
+
+				centerVec := vmath.Vector3{
+					X: float32(centerX),
+					Y: float32(centerY),
+					Z: float32(centerZ),
+				}
+				centerS := float64(centerVec.Dot(s) + face.TextureInfo.DistS)
+				centerT := float64(centerVec.Dot(t) + face.TextureInfo.DistT)
+
+				centerTX := -1.0
+				centerTY := -1.0
+				if face.LightMap != -1 {
+					centerTX = math.Floor(centerS/16) - lightS
+					centerTY = math.Floor(centerT/16) - lightT
+				}
 
 				vertexSerializer(data, mapVertex{
 					X:              model.Origin.X + float32(centerX),
