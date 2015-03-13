@@ -4,6 +4,10 @@ import (
 	"reflect"
 )
 
+// Struct returns a function that will serialize
+// structs of the type passed to Struct originally.
+// It also returns an array of types that can be
+// passed to New
 func Struct(i interface{}) (func(*Buffer, interface{}), []Type) {
 	t := reflect.TypeOf(i)
 	l := t.NumField()
