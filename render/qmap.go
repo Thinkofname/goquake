@@ -76,13 +76,14 @@ func newQMap(b *bsp.File) *qMap {
 		textures:   make([]*atlasTexture, len(b.Textures)),
 	}
 
+    // Allocate mipmaps
 	for j := 0; j < 3; j++ {
 		size := atlasSize >> uint(j+1)
 		m.mipTextures[j] = make([]byte, size*size)
 	}
 
+	// Sort the textures by size for better packing
 	var tList []ti
-
 	for i, texture := range b.Textures {
 		if texture == nil {
 			continue
@@ -90,9 +91,9 @@ func newQMap(b *bsp.File) *qMap {
 
 		tList = append(tList, ti{i, texture})
 	}
-
 	sort.Sort(tiSorter(tList))
 
+	// Add all textures to the atlas
 	for _, t := range tList {
 		tx := m.atlas.addPicture(t.texture.Pictures[0])
 		m.textures[t.id] = tx
@@ -112,7 +113,6 @@ func newQMap(b *bsp.File) *qMap {
 			)
 		}
 	}
-
 	m.atlas.bake()
 
 	bufferNormal := builder.New(vertexTypes...)
@@ -131,10 +131,10 @@ func newQMap(b *bsp.File) *qMap {
 				continue
 			}
 
-			minS := float32(math.Inf(1))
-			minT := float32(math.Inf(1))
-			maxS := float32(math.Inf(-1))
-			maxT := float32(math.Inf(-1))
+			minS := math.Inf(1)
+			minT := math.Inf(1)
+			maxS := math.Inf(-1)
+			maxT := math.Inf(-1)
 
 			tInfo := face.TextureInfo
 			for _, l := range face.Ledges {
@@ -145,8 +145,8 @@ func newQMap(b *bsp.File) *qMap {
 					vert = b.Edges[l].Vertex0
 				}
 
-				valS := vert.Dot(tInfo.VectorS) + tInfo.DistS
-				valT := vert.Dot(tInfo.VectorT) + tInfo.DistT
+				valS := float64(vert.Dot(tInfo.VectorS) + tInfo.DistS)
+				valT := float64(vert.Dot(tInfo.VectorT) + tInfo.DistT)
 
 				if minS > valS {
 					minS = valS
@@ -162,10 +162,10 @@ func newQMap(b *bsp.File) *qMap {
 				}
 			}
 
-			lightS := float32(math.Floor(float64(minS / 16)))
-			lightT := float32(math.Floor(float64(minT / 16)))
-			lightSM := float32(math.Ceil(float64(maxS / 16)))
-			lightTM := float32(math.Ceil(float64(maxT / 16)))
+			lightS := math.Floor(minS / 16)
+			lightT := math.Floor(minT / 16)
+			lightSM := math.Ceil(maxS / 16)
+			lightTM := math.Ceil(maxT / 16)
 
 			width := (lightSM - lightS) + 1.0
 			height := (lightTM - lightT) + 1.0
@@ -180,6 +180,7 @@ func newQMap(b *bsp.File) *qMap {
 			})
 		}
 	}
+	// Add them to an atlas
 	sort.Sort(liSorter(lList))
 	lights := map[int32]*atlasTexture{}
 	for _, l := range lList {
@@ -213,21 +214,21 @@ func newQMap(b *bsp.File) *qMap {
 				face.TypeLight = 0xFF
 			}
 
-			centerX := float32(0)
-			centerY := float32(0)
-			centerZ := float32(0)
-			ec := float32(0)
+			centerX := 0.0
+			centerY := 0.0
+			centerZ := 0.0
+			ec := 0.0
 			for _, l := range face.Ledges {
 				if l < 0 {
 					l = -l
 				}
 				e := b.Edges[l]
-				centerX += e.Vertex0.X
-				centerY += e.Vertex0.Y
-				centerZ += e.Vertex0.Z
-				centerX += e.Vertex1.X
-				centerY += e.Vertex1.Y
-				centerZ += e.Vertex1.Z
+				centerX += float64(e.Vertex0.X)
+				centerY += float64(e.Vertex0.Y)
+				centerZ += float64(e.Vertex0.Z)
+				centerX += float64(e.Vertex1.X)
+				centerY += float64(e.Vertex1.Y)
+				centerZ += float64(e.Vertex1.Z)
 				ec += 2
 			}
 			centerX /= ec
@@ -239,15 +240,15 @@ func newQMap(b *bsp.File) *qMap {
 				light = 0
 			}
 
-			tOffsetX := float32(0)
-			tOffsetY := float32(0)
-			var lightS, lightT float32
+			tOffsetX := 0.0
+			tOffsetY := 0.0
+			var lightS, lightT float64
 
 			if face.TypeLight != 0xFF && face.LightMap != -1 {
-				minS := float32(math.Inf(1))
-				minT := float32(math.Inf(1))
-				maxS := float32(math.Inf(-1))
-				maxT := float32(math.Inf(-1))
+				minS := math.Inf(1)
+				minT := math.Inf(1)
+				maxS := math.Inf(-1)
+				maxT := math.Inf(-1)
 
 				tInfo := face.TextureInfo
 				for _, l := range face.Ledges {
@@ -258,8 +259,8 @@ func newQMap(b *bsp.File) *qMap {
 						vert = b.Edges[l].Vertex0
 					}
 
-					valS := vert.Dot(tInfo.VectorS) + tInfo.DistS
-					valT := vert.Dot(tInfo.VectorT) + tInfo.DistT
+					valS := float64(vert.Dot(tInfo.VectorS) + tInfo.DistS)
+					valT := float64(vert.Dot(tInfo.VectorT) + tInfo.DistT)
 
 					if minS > valS {
 						minS = valS
@@ -275,28 +276,28 @@ func newQMap(b *bsp.File) *qMap {
 					}
 				}
 
-				lightS = float32(math.Floor(float64(minS / 16)))
-				lightT = float32(math.Floor(float64(minT / 16)))
+				lightS = math.Floor(minS / 16)
+				lightT = math.Floor(minT / 16)
 
 				tex := lights[face.LightMap]
-				tOffsetX = float32(tex.x)
-				tOffsetY = float32(tex.y)
+				tOffsetX = float64(tex.x)
+				tOffsetY = float64(tex.y)
 			}
 
 			s := face.TextureInfo.VectorS
 			t := face.TextureInfo.VectorT
 
-			centerVec := vmath.Vector3{centerX, centerY, centerZ}
-			centerS := centerVec.Dot(s) + face.TextureInfo.DistS
-			centerT := centerVec.Dot(t) + face.TextureInfo.DistT
+			centerVec := vmath.Vector3{float32(centerX), float32(centerY), float32(centerZ)}
+			centerS := float64(centerVec.Dot(s) + face.TextureInfo.DistS)
+			centerT := float64(centerVec.Dot(t) + face.TextureInfo.DistT)
 
 			tex := m.textures[face.TextureInfo.Texture.ID]
 
-			centerTX := float32(-1.0)
-			centerTY := float32(-1.0)
+			centerTX := -1.0
+			centerTY := -1.0
 			if face.LightMap != -1 {
-				centerTX = float32(math.Floor(float64(centerS/16))) - lightS
-				centerTY = float32(math.Floor(float64(centerT/16))) - lightT
+				centerTX = math.Floor(centerS/16) - lightS
+				centerTY = math.Floor(centerT/16) - lightT
 			}
 
 			for _, l := range face.Ledges {
@@ -333,20 +334,20 @@ func newQMap(b *bsp.File) *qMap {
 					}
 				}
 
-				aS := av.Dot(s) + face.TextureInfo.DistS
-				aT := av.Dot(t) + face.TextureInfo.DistT
+				aS := float64(av.Dot(s) + face.TextureInfo.DistS)
+				aT := float64(av.Dot(t) + face.TextureInfo.DistT)
 
-				aTX := float32(-1.0)
-				aTY := float32(-1.0)
+				aTX := -1.0
+				aTY := -1.0
 				if face.LightMap != -1 {
-					aTX = float32(math.Floor(float64(aS/16))) - lightS
-					aTY = float32(math.Floor(float64(aT/16))) - lightT
+					aTX = math.Floor(aS/16) - lightS
+					aTY = math.Floor(aT/16) - lightT
 				}
 
 				vertexSerializer(data, mapVertex{
-					X:              model.Origin.X + av.X,
-					Y:              model.Origin.Y + av.Y,
-					Z:              model.Origin.Z + av.Z,
+					X:              model.Origin.X + float32(av.X),
+					Y:              model.Origin.Y + float32(av.Y),
+					Z:              model.Origin.Z + float32(av.Z),
 					TextureX:       uint16(tex.x),
 					TextureY:       uint16(tex.y),
 					TextureOffsetX: int16(aS),
@@ -359,20 +360,20 @@ func newQMap(b *bsp.File) *qMap {
 					LightType:      face.TypeLight,
 				})
 
-				bS := bv.Dot(s) + face.TextureInfo.DistS
-				bT := bv.Dot(t) + face.TextureInfo.DistT
+				bS := float64(bv.Dot(s) + face.TextureInfo.DistS)
+				bT := float64(bv.Dot(t) + face.TextureInfo.DistT)
 
-				bTX := float32(-1.0)
-				bTY := float32(-1.0)
+				bTX := -1.0
+				bTY := -1.0
 				if face.LightMap != -1 {
-					bTX = float32(math.Floor(float64(bS/16))) - lightS
-					bTY = float32(math.Floor(float64(bT/16))) - lightT
+					bTX = math.Floor(bS/16) - lightS
+					bTY = math.Floor(bT/16) - lightT
 				}
 
 				vertexSerializer(data, mapVertex{
-					X:              model.Origin.X + bv.X,
-					Y:              model.Origin.Y + bv.Y,
-					Z:              model.Origin.Z + bv.Z,
+					X:              model.Origin.X + float32(bv.X),
+					Y:              model.Origin.Y + float32(bv.Y),
+					Z:              model.Origin.Z + float32(bv.Z),
 					TextureX:       uint16(tex.x),
 					TextureY:       uint16(tex.y),
 					TextureOffsetX: int16(bS),
@@ -386,9 +387,9 @@ func newQMap(b *bsp.File) *qMap {
 				})
 
 				vertexSerializer(data, mapVertex{
-					X:              model.Origin.X + centerX,
-					Y:              model.Origin.Y + centerY,
-					Z:              model.Origin.Z + centerZ,
+					X:              model.Origin.X + float32(centerX),
+					Y:              model.Origin.Y + float32(centerY),
+					Z:              model.Origin.Z + float32(centerZ),
 					TextureX:       uint16(tex.x),
 					TextureY:       uint16(tex.y),
 					TextureOffsetX: int16(centerS),
