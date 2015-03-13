@@ -405,8 +405,6 @@ func newQMap(b *bsp.File) *qMap {
 	}
 
 	m.lightAtlas.bake()
-	dumpTexture(m.lightAtlas.buffer, m.lightAtlas.width, m.lightAtlas.height, pakFile, "light.png")
-	dumpTexture(m.atlas.buffer, m.atlas.width, m.atlas.height, pakFile, "texture.png")
 
 	m.mapVertexArray = gl.CreateVertexArray()
 	m.mapVertexArray.Bind()

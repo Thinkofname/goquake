@@ -2,12 +2,13 @@ package render
 
 import (
 	"github.com/thinkofdeath/goquake/bsp"
+	"math"
 )
 
 type textureAltas struct {
 	width, height int
 	buffer        []byte
-	root          []*atlasPart
+	freeSpace     []*atlasPart
 	padding       int
 	baked         bool
 }
@@ -15,8 +16,6 @@ type textureAltas struct {
 type atlasPart struct {
 	x, y          int
 	width, height int
-	used          bool
-	parts         []*atlasPart
 }
 
 type atlasTexture struct {
@@ -31,7 +30,7 @@ func newAtlas(width, height int, padding int) *textureAltas {
 		padding: padding,
 		buffer:  make([]byte, width*height),
 	}
-	a.root = append(a.root, &atlasPart{
+	a.freeSpace = append(a.freeSpace, &atlasPart{
 		x:      0,
 		y:      0,
 		width:  width,
@@ -48,18 +47,55 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 	w := picture.Width + (a.padding << 1)
 	h := picture.Height + (a.padding << 1)
 
-	var p *atlasPart
-	p, a.root = findFree(a.root, w, h)
+	var target *atlasPart
+	targetIndex := 0
+	priority := math.MaxInt32
+	for i, free := range a.freeSpace {
+		if free.width >= w && free.height >= h {
+			currentPriority := free.width - w
+			if currentPriority > free.height-h {
+				currentPriority = free.height - h
+			}
+			if target == nil || currentPriority < priority {
+				target = free
+				priority = currentPriority
+				targetIndex = i
+			}
 
-	if p == nil {
-		dumpTexture(a.buffer, a.width, a.height, pakFile, "full.png")
+			if priority == 0 {
+				break
+			}
+		}
+	}
+
+	if target == nil {
 		panic("atlas full")
 	}
 
-	copyImage(picture.Data, a.buffer, p.x, p.y, w, h, a.width, a.height, a.padding)
+	copyImage(picture.Data, a.buffer, target.x, target.y, w, h, a.width, a.height, a.padding)
 
-	tx := p.x + a.padding
-	ty := p.y + a.padding
+	tx := target.x + a.padding
+	ty := target.y + a.padding
+
+	if w == target.width {
+		target.y += h
+		target.height -= h
+		if target.height == 0 {
+			a.freeSpace = append(a.freeSpace[:targetIndex], a.freeSpace[targetIndex+1:]...)
+		}
+	} else {
+		if target.height > h {
+			a.freeSpace = append(
+				[]*atlasPart{&atlasPart{
+					target.x, target.y + h,
+					w, target.height - h,
+				}},
+				a.freeSpace...,
+			)
+		}
+		target.x += w
+		target.width -= w
+	}
 
 	return &atlasTexture{
 		x:      tx,
@@ -71,7 +107,7 @@ func (a *textureAltas) addPicture(picture *bsp.Picture) *atlasTexture {
 
 func (a *textureAltas) bake() {
 	a.baked = true
-	a.root = nil
+	a.freeSpace = nil
 }
 
 func safeGetPixel(data []byte, x, y, w, h int) byte {
@@ -101,37 +137,4 @@ func copyImage(data, buffer []byte, targetX, targetY, w, h, width, height int, p
 			buffer[index+x] = safeGetPixel(data, px, py, pw, ph)
 		}
 	}
-}
-
-func findFree(parts []*atlasPart, width, height int) (*atlasPart, []*atlasPart) {
-	for _, part := range parts {
-		if !part.used && part.width >= width && part.height >= height {
-			if width != part.width {
-				other := &atlasPart{
-					x:      part.x + width,
-					y:      part.y,
-					width:  part.width - width,
-					height: part.height,
-				}
-				parts = append(parts, other)
-			}
-			part.width = width
-			if part.height-height > 0 {
-				part.parts = append(part.parts, &atlasPart{
-					x:      part.x,
-					y:      part.y + height,
-					width:  part.width,
-					height: part.height - height,
-				})
-			}
-			part.used = true
-			return part, parts
-		}
-		var found *atlasPart
-		found, part.parts = findFree(part.parts, width, height)
-		if found != nil {
-			return found, parts
-		}
-	}
-	return nil, parts
 }
